@@ -47,7 +47,9 @@ if [[ -f "${APP_ROOT}/k8s/ghcr-pull.secret.yaml" ]]; then
 fi
 
 echo "==> Applying manifests"
-kubectl apply -k "${APP_ROOT}/k8s"
+kubectl kustomize "${APP_ROOT}/k8s" \
+  | sed "s|IMAGE_PLACEHOLDER|${IMAGE}|g" \
+  | kubectl apply -f -
 
 echo "==> Waiting for infra (postgres, redis)"
 kubectl wait --for=condition=available deployment/msp-postgres deployment/redis \
@@ -56,10 +58,6 @@ kubectl wait --for=condition=available deployment/msp-postgres deployment/redis 
 pull_image
 
 echo "==> Rolling out image: ${IMAGE}"
-kubectl set image "deployment/${DEPLOYMENT}" \
-  "${CONTAINER}=${IMAGE}" \
-  -n "${NAMESPACE}"
-
 if ! kubectl rollout status "deployment/${DEPLOYMENT}" -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"; then
   dump_rollout_debug
   exit 1

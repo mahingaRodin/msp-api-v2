@@ -1,21 +1,6 @@
--- V10__add_audit_consent_and_order_fixes.sql
+-- V12__ensure_consent_and_audit_tables.sql
+-- Idempotent repair when V10 did not apply (e.g. trigger failure or baseline skip).
 
--- ── Fix orders table ─────────────────────────────────────────────────────────
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS status    VARCHAR(50) DEFAULT 'PENDING';
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES businesses(tenant_id);
-
-CREATE INDEX IF NOT EXISTS idx_orders_tenant ON orders(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
-
--- ── Fix refunds table ────────────────────────────────────────────────────────
-ALTER TABLE refunds ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES businesses(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_refunds_tenant ON refunds(tenant_id);
-
--- ── Fix shift_reports table ──────────────────────────────────────────────────
-ALTER TABLE shift_reports ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES businesses(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_shift_reports_tenant ON shift_reports(tenant_id);
-
--- ── audit_logs ───────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS audit_logs (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id     UUID,
@@ -33,7 +18,6 @@ CREATE INDEX IF NOT EXISTS idx_audit_actor   ON audit_logs(actor_user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_action  ON audit_logs(action);
 
--- Immutability trigger — audit rows can never be updated or deleted
 CREATE OR REPLACE FUNCTION prevent_audit_modification()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -46,7 +30,6 @@ CREATE TRIGGER audit_immutability
     BEFORE UPDATE OR DELETE ON audit_logs
     FOR EACH ROW EXECUTE PROCEDURE prevent_audit_modification();
 
--- ── admin_consent_requests ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS admin_consent_requests (
     id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id                UUID NOT NULL,
