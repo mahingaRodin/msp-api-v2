@@ -117,6 +117,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }}
           port: ${{ env.SERVER_PORT }}
+          command_timeout: 12m
           envs: IMAGE
           script: |
             set -euo pipefail

@@ -9,6 +9,27 @@ NAMESPACE="${NAMESPACE:-msp}"
 DEPLOYMENT="${DEPLOYMENT:-msp-backend}"
 CONTAINER="${CONTAINER:-msp-backend}"
 IMAGE="${IMAGE:?Set IMAGE to the full image reference, e.g. ghcr.io/user/msp-api:sha}"
+ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-300s}"
+
+dump_rollout_debug() {
+  echo ""
+  echo "==> Rollout diagnostics"
+  kubectl get pods -n "${NAMESPACE}" -o wide || true
+  kubectl describe deployment/"${DEPLOYMENT}" -n "${NAMESPACE}" | tail -n 40 || true
+  kubectl get events -n "${NAMESPACE}" --sort-by=.lastTimestamp | tail -n 20 || true
+  kubectl logs "deployment/${DEPLOYMENT}" -n "${NAMESPACE}" --tail=80 || true
+}
+
+pull_image() {
+  echo "==> Pre-pulling image: ${IMAGE}"
+  if command -v k3s >/dev/null 2>&1; then
+    k3s ctr images pull "${IMAGE}" || true
+  elif command -v crictl >/dev/null 2>&1; then
+    crictl pull "${IMAGE}" || true
+  elif command -v docker >/dev/null 2>&1; then
+    docker pull "${IMAGE}" || true
+  fi
+}
 
 cd "${APP_ROOT}"
 
@@ -28,12 +49,21 @@ fi
 echo "==> Applying manifests"
 kubectl apply -k "${APP_ROOT}/k8s"
 
+echo "==> Waiting for infra (postgres, redis)"
+kubectl wait --for=condition=available deployment/msp-postgres deployment/redis \
+  -n "${NAMESPACE}" --timeout=120s
+
+pull_image
+
 echo "==> Rolling out image: ${IMAGE}"
 kubectl set image "deployment/${DEPLOYMENT}" \
   "${CONTAINER}=${IMAGE}" \
   -n "${NAMESPACE}"
 
-kubectl rollout status "deployment/${DEPLOYMENT}" -n "${NAMESPACE}" --timeout=600s
+if ! kubectl rollout status "deployment/${DEPLOYMENT}" -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"; then
+  dump_rollout_debug
+  exit 1
+fi
 
 echo ""
 echo "Done. Pods:"
