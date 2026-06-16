@@ -55,6 +55,16 @@ echo "==> Waiting for infra (postgres, redis)"
 kubectl wait --for=condition=available deployment/msp-postgres deployment/redis \
   -n "${NAMESPACE}" --timeout=120s
 
+repair_flyway_if_needed() {
+  echo "==> Clearing failed Flyway migration rows (if any)"
+  DB_USER="$(kubectl get secret msp-db-secret -n "${NAMESPACE}" -o jsonpath='{.data.username}' | base64 -d)"
+  kubectl exec -n "${NAMESPACE}" deploy/msp-postgres -- \
+    psql -U "${DB_USER}" -d msp_db -v ON_ERROR_STOP=0 -c \
+    "DELETE FROM flyway_schema_history WHERE success = false;" >/dev/null 2>&1 || true
+}
+
+repair_flyway_if_needed
+
 pull_image
 
 echo "==> Rolling out image: ${IMAGE}"
