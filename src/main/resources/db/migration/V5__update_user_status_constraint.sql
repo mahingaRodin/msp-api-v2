@@ -1,5 +1,5 @@
 ALTER TABLE users
-DROP CONSTRAINT users_user_status_check;
+DROP CONSTRAINT IF EXISTS users_user_status_check;
 
 ALTER TABLE users
     ADD CONSTRAINT users_user_status_check
