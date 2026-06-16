@@ -3,8 +3,10 @@ kind: Kustomization
 
 namespace: msp
 
-commonLabels:
-  app.kubernetes.io/managed-by: msp-api-kustomize
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/managed-by: msp-api-kustomize
 
 resources:
   - namespace.yaml
@@ -16,8 +18,4 @@ resources:
   - ingress.yaml
 
 # Secrets are applied separately from /opt/apps/msp-api/secrets/secrets.yaml
-
-images:
-  - name: msp-api
-    newName: msp-api
-    newTag: latest
+# Image is injected at deploy time (see deploy/server/deploy.sh)
