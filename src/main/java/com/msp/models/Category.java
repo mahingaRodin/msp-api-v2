@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.UUID;
-
 @Entity
 @Getter
 @Setter
@@ -24,5 +23,12 @@ public class Category {
 
     @ManyToOne
     private Store store;
+
+    /**
+     * Links this category to its owning Business tenant.
+     * Inherited from the parent store's tenantId at creation time.
+     */
+    @Column(name = "tenant_id")
+    private UUID tenantId;
 
 }

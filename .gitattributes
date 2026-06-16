@@ -1,2 +1,2 @@
-/mvnw text eol=lf
-*.cmd text eol=crlf
+# Shell scripts must use LF so they run on Linux servers
+*.sh text eol=lf

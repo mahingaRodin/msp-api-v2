@@ -10,4 +10,6 @@ import java.util.UUID;
 
 public interface BranchRepository extends JpaRepository<Branch, UUID> {
     Page<Branch> findByStoreId(UUID storeId, Pageable pageable);
+    Page<Branch> findByTenantId(UUID tenantId, Pageable pageable);
+    boolean existsByIdAndTenantId(UUID id, UUID tenantId);
 }

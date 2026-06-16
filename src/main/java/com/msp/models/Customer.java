@@ -15,20 +15,29 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EqualsAndHashCode
-@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-@Table(name = "customers")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@Table(name = "customers",
+        indexes = {
+                @Index(name = "idx_customer_email", columnList = "email", unique = true)
+        })
 public class Customer {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(nullable = false)
     private String firstName;
+
     @Column(nullable = false)
     private String lastName;
 
-    @Column(nullable = false)
+    /**
+     * Globally unique — one account per person across the entire platform.
+     */
+    @Column(nullable = false, unique = true)
     @Email(message = "Email Should Be Valid!")
     private String email;
 
@@ -37,6 +46,9 @@ public class Customer {
     private EUserRole role;
 
     private String phone;
+
+    /** BCrypt-hashed password. */
+    private String password;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -25,8 +25,19 @@ public class Product {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    /**
+     * SKU is unique per store, not globally.
+     * Two different stores can have the same SKU.
+     */
+    @Column(nullable = false)
     private String sku;
+
+    /**
+     * Links this product to its owning Business tenant.
+     * Inherited from the parent store's tenantId at creation time.
+     */
+    @Column(name = "tenant_id")
+    private UUID tenantId;
 
     private String description;
 

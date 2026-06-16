@@ -1,0 +1,20 @@
+services:
+  localstack:
+    image: localstack/localstack:4.14.0
+    container_name: msp-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,sqs,sns,ses
+      AWS_DEFAULT_REGION: us-east-1
+      DEBUG: "0"
+    volumes:
+      - msp-localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  msp-localstack-data:

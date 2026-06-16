@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: msp
+
+commonLabels:
+  app.kubernetes.io/managed-by: msp-api-kustomize
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - postgres-deployment.yaml
+  - redis-deployment.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+# Secrets are applied separately from /opt/apps/msp-api/secrets/secrets.yaml
+
+images:
+  - name: msp-api
+    newName: msp-api
+    newTag: latest

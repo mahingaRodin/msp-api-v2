@@ -19,6 +19,7 @@ public class StoreMapper {
         storeDto.setStoreType(store.getStoreType());
         storeDto.setStatus(store.getStatus());
         storeDto.setContact(store.getContact());
+        storeDto.setTenantId(store.getTenantId());
 
         return storeDto;
     }

@@ -1,21 +1,21 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: pos-backend
-  namespace: pos
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  name: msp-backend
+  namespace: msp
+  labels:
+    app.kubernetes.io/name: msp-backend
+    app.kubernetes.io/part-of: msp-api
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
-    - host: pos.5.180.181.195.nip.io
+    - host: msp.185.181.10.165.nip.io
       http:
         paths:
-          - path: /msp(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /
+            pathType: Prefix
             backend:
               service:
-                name: pos-backend
+                name: msp-backend
                 port:
                   number: 80

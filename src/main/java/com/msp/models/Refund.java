@@ -43,6 +43,10 @@ public class Refund {
     private EPaymentType paymentType;
     private LocalDateTime createdAt;
 
+    /** Links this refund to its owning Business tenant. */
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

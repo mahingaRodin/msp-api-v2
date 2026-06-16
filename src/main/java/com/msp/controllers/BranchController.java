@@ -260,4 +260,23 @@ public class BranchController {
         branchService.deleteBranch(id);
         return ResponseEntity.ok(apiResponse);
     }
+
+    @Operation(
+            summary = "Get all branches",
+            description = "Retrieves a paginated list of all branches"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Branches retrieved"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    @GetMapping
+    public ResponseEntity<Page<BranchDto>> getAllBranches(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1000") int size
+    ) throws Exception {
+        Page<BranchDto> branches = branchService.getAllBranches(page, size);
+        return ResponseEntity.ok(branches);
+    }
 }

@@ -11,13 +11,13 @@ public class OrderMapper {
                 .id(order.getId())
                 .totalAmount(order.getTotalAmount())
                 .createdAt(order.getCreatedAt())
-                .branchId(order.getBranch() != null ? order.getBranch().getId() : null)
-                .cashierId(order.getCashier() != null ? order.getCashier().getId() : null)
+                .branchId(order.getBranch()   != null ? order.getBranch().getId()   : null)
+                .cashierId(order.getCashier() != null ? order.getCashier().getId()  : null)
                 .customerId(order.getCustomer() != null ? order.getCustomer().getId() : null)
                 .paymentType(order.getPaymentType())
+                .status(order.getStatus())
                 .items(order.getItems() == null ? java.util.List.of() :
-                        order.getItems().stream().map(OrderItemMapper::toDto).toList()
-                )
+                        order.getItems().stream().map(OrderItemMapper::toDto).toList())
                 .build();
     }
 }

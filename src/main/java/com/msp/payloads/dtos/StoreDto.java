@@ -19,4 +19,5 @@ public class StoreDto {
     private String storeType;
     private EStoreStatus status;
     private StoreContact contact;
+    private UUID tenantId;
 }

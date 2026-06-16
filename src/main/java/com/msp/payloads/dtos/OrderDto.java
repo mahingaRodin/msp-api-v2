@@ -1,5 +1,6 @@
 package com.msp.payloads.dtos;
 
+import com.msp.enums.EOrderStatus;
 import com.msp.enums.EPaymentType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,4 +26,5 @@ public class OrderDto {
 
         private List<OrderItemDto> items;
         private EPaymentType paymentType;
+        private EOrderStatus status;
 }

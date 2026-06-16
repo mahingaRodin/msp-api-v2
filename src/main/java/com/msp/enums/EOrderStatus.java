@@ -1,5 +1,8 @@
 package com.msp.enums;
 
 public enum EOrderStatus {
-    PENDING, COMPLETED
+    PENDING,
+    COMPLETED,
+    CANCELLED,
+    REFUNDED
 }

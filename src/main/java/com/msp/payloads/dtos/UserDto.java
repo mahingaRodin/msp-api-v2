@@ -1,6 +1,7 @@
 package com.msp.payloads.dtos;
 
 import com.msp.enums.EUserRole;
+import com.msp.enums.EUserStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -22,6 +23,8 @@ public class UserDto {
 
     private String phone;
     private EUserRole role;
+
+    private EUserStatus userStatus;
 
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")

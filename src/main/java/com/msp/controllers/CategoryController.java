@@ -133,6 +133,16 @@ public class CategoryController {
         );
     }
 
+    @Operation(summary = "Get a single category by ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Category found"),
+            @ApiResponse(responseCode = "404", description = "Category not found")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoryDto> getCategoryById(@PathVariable UUID id) throws Exception {
+        return ResponseEntity.ok(categoryService.getCategoryById(id));
+    }
+
     @Operation(
             summary = "Update an existing category",
             description = "Updates the details of an existing category identified by its ID. Requires ADMIN or MANAGER role."

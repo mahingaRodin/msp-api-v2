@@ -44,6 +44,14 @@ public class Branch {
     @JsonIgnoreProperties({ "storeAdmin", "branch", "contact" })
     private Store store;
 
+    /**
+     * Links this branch to its owning Business tenant.
+     * Inherited from the parent store's tenantId at creation time.
+     */
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
+
     @OneToOne
     @JsonIgnoreProperties({ "branch", "store", "password" })
     private User manager;

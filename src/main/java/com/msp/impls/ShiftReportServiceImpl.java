@@ -62,6 +62,7 @@ public class ShiftReportServiceImpl implements ShiftService {
                                 .cashier(currentUser)
                                 .shiftStart(shiftStart)
                                 .branch(branch)
+                                .tenantId(currentUser.getTenantId())
                                 .build();
 
                 ShiftReport savedReport = shiftReportRepository.save(shiftReport);

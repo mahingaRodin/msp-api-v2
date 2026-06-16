@@ -1,13 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: pos-backend
-  namespace: pos
+  name: msp-backend
+  namespace: msp
   labels:
-    app: pos-backend
+    app.kubernetes.io/name: msp-backend
+    app.kubernetes.io/part-of: msp-api
 spec:
   selector:
-    app: pos-backend
+    app.kubernetes.io/name: msp-backend
   ports:
     - name: http
       port: 80

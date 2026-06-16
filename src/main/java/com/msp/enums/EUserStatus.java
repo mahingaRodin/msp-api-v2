@@ -3,5 +3,6 @@ package com.msp.enums;
 public enum EUserStatus {
     ACTIVE,
     SUSPENDED,
-    DISCHARGED
+    DISCHARGED,
+    PENDING
 }

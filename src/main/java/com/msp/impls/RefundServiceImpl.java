@@ -57,6 +57,7 @@ public class RefundServiceImpl implements RefundService {
                 .reason(refundDto.getReason())
                 .amount(refundDto.getAmount())
                 .createdAt(refundDto.getCreatedAt())
+                .tenantId(cashier.getTenantId())
                 .build();
         Refund savedRefund = refundRepository.save(createdRefund);
         return RefundMapper.toDto(savedRefund);

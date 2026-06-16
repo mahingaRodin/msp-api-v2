@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: msp-backend-config
+  namespace: msp
+  labels:
+    app.kubernetes.io/name: msp-backend
+    app.kubernetes.io/part-of: msp-api
+data:
+  APP_PUBLIC_BASE_URL: "http://msp.185.181.10.165.nip.io"
+  AWS_MESSAGING_ENABLED: "false"
+  DB_URL: "jdbc:postgresql://msp-postgres:5432/msp_db"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  SPRING_PROFILES_ACTIVE: "prod"

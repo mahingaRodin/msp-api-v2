@@ -13,4 +13,5 @@ public interface BranchService {
     void deleteBranch(UUID id) throws Exception;
     Page<BranchDto> getAllBranchesByStoreId(UUID storeId, int page, int size);
     BranchDto getBranchById(UUID id) throws Exception;
+    Page<BranchDto> getAllBranches(int page, int size);
 }

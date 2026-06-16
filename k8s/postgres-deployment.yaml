@@ -1,8 +1,10 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pos-postgres-pvc
-  namespace: pos
+  name: msp-postgres-pvc
+  namespace: msp
+  labels:
+    app.kubernetes.io/part-of: msp-api
 spec:
   accessModes:
     - ReadWriteOnce
@@ -13,19 +15,21 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pos-postgres
-  namespace: pos
+  name: msp-postgres
+  namespace: msp
   labels:
-    app: postgres
+    app.kubernetes.io/name: msp-postgres
+    app.kubernetes.io/part-of: msp-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app.kubernetes.io/name: msp-postgres
   template:
     metadata:
       labels:
-        app: postgres
+        app.kubernetes.io/name: msp-postgres
+        app.kubernetes.io/part-of: msp-api
     spec:
       containers:
         - name: postgres
@@ -34,16 +38,16 @@ spec:
             - containerPort: 5432
           env:
             - name: POSTGRES_DB
-              value: pos_db
+              value: msp_db
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: pos-db-secret
+                  name: msp-db-secret
                   key: username
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: pos-db-secret
+                  name: msp-db-secret
                   key: password
           resources:
             requests:
@@ -58,18 +62,19 @@ spec:
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
-            claimName: pos-postgres-pvc
+            claimName: msp-postgres-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: pos-postgres-postgresql
-  namespace: pos
+  name: msp-postgres
+  namespace: msp
   labels:
-    app: postgres
+    app.kubernetes.io/name: msp-postgres
+    app.kubernetes.io/part-of: msp-api
 spec:
   selector:
-    app: postgres
+    app.kubernetes.io/name: msp-postgres
   ports:
     - port: 5432
       targetPort: 5432

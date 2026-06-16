@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+##env files
+.env
+
+# Kubernetes secrets (managed on server only)
+k8s/secret.yaml
+/opt/apps/*/secrets/

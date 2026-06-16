@@ -1,9 +1,6 @@
 package com.msp.payloads.dtos;
 
 import com.msp.enums.EUserRole;
-import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -32,8 +29,10 @@ public class CustomerDto {
     private String email;
 
     private EUserRole role;
-
     private String phone;
+
+    /** How many stores this customer has interacted with. Used in profile view. */
+    private long storeCount;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

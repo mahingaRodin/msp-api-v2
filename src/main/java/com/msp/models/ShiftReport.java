@@ -36,6 +36,10 @@ public class ShiftReport {
     @ManyToOne
     private User cashier;
 
+    /** Links this shift report to its owning Business tenant. */
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
     @Transient
     private List<PaymentSummary> paymentSummaries;
 

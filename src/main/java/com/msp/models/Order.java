@@ -1,5 +1,6 @@
 package com.msp.models;
 
+import com.msp.enums.EOrderStatus;
 import com.msp.enums.EPaymentType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
@@ -40,8 +41,19 @@ public class Order {
 
     private EPaymentType paymentType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private EOrderStatus status;
+
+    /** Links this order to its owning Business tenant for isolation. */
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (status == null) {
+            status = EOrderStatus.PENDING;
+        }
     }
 }

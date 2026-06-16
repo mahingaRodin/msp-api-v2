@@ -2,6 +2,7 @@ package com.msp.impls;
 
 import com.msp.configs.JwtProvider;
 import com.msp.enums.EUserRole;
+import com.msp.enums.EUserStatus;
 import com.msp.exceptions.UserException;
 import com.msp.mappers.UserMapper;
 import com.msp.models.User;
@@ -63,6 +64,7 @@ public class AuthServiceImpl implements AuthService {
         newUser.setLastName(userDto.getLastName());
         newUser.setPhone(userDto.getPhone());
         newUser.setRole(userDto.getRole());
+        newUser.setUserStatus(EUserStatus.PENDING);
         newUser.setLastLogin(LocalDateTime.now());
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
@@ -100,12 +102,14 @@ public class AuthServiceImpl implements AuthService {
         Authentication authentication = authenticate(email, password);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String token = provider.generateToken(authentication);
-
         // Get and update user
         User user = userRepo.findByEmail(email);
         user.setLastLogin(LocalDateTime.now());
         user = userRepo.save(user);
+
+        // Use the full token (with tenantId + userId) so tenant-scoped users
+        // get their tenantId embedded in the JWT from the first login.
+        String token = provider.generateToken(authentication, user);
 
         AuthResponse authResponse = new AuthResponse();
         authResponse.setJwt(token);

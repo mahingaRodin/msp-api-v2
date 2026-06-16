@@ -1,77 +1,74 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pos-backend
-  namespace: pos
+  name: msp-backend
+  namespace: msp
   labels:
-    app: pos-backend
+    app.kubernetes.io/name: msp-backend
+    app.kubernetes.io/part-of: msp-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: pos-backend
+      app.kubernetes.io/name: msp-backend
   template:
     metadata:
       labels:
-        app: pos-backend
+        app.kubernetes.io/name: msp-backend
+        app.kubernetes.io/part-of: msp-api
     spec:
       containers:
-        - name: pos-backend
-          image: headie1/pos-backend:0.0.2
+        - name: msp-backend
+          image: msp-api:placeholder
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
               name: http
+          envFrom:
+            - configMapRef:
+                name: msp-backend-config
           env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: "prod"
-            - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://pos-postgres-postgresql.pos.svc.cluster.local:5432/pos_db"
-            - name: SPRING_DATASOURCE_USERNAME
+            - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: pos-db-secret
+                  name: msp-db-secret
                   key: username
-            - name: SPRING_DATASOURCE_PASSWORD
+            - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: pos-db-secret
+                  name: msp-db-secret
                   key: password
-            # Redis Configuration
-            - name: SPRING_REDIS_HOST
-              value: "redis-service"
-            - name: SPRING_REDIS_PORT
-              value: "6379"
-            - name: SPRING_CACHE_TYPE
-              value: "redis"
-            # JWT Secret
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: pos-backend-secrets
+                  name: msp-backend-secrets
                   key: jwt-secret
-            - name: SERVER_FORWARD_HEADERS_STRATEGY
-              value: "framework"
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "100m"
-            limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 5000
+            failureThreshold: 30
+            periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /msp/actuator/health
+              path: /actuator/health
               port: 5000
-            initialDelaySeconds: 240
+            initialDelaySeconds: 60
             periodSeconds: 20
             timeoutSeconds: 3
-            failureThreshold: 6
+            failureThreshold: 5
           readinessProbe:
             httpGet:
-              path: /msp/actuator/health
+              path: /actuator/health
               port: 5000
-            initialDelaySeconds: 180
+            initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 3
-            failureThreshold: 12
+            failureThreshold: 5

@@ -4,6 +4,7 @@ import com.msp.models.Customer;
 import com.msp.payloads.dtos.CustomerDto;
 
 public class CustomerMapper {
+
     public static CustomerDto toDto(Customer customer) {
         if (customer == null) return null;
 

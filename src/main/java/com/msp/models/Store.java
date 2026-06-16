@@ -3,7 +3,6 @@ package com.msp.models;
 import com.msp.enums.EStoreStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -16,7 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "stores")
-@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Store {
 
     @Id
@@ -29,7 +28,7 @@ public class Store {
 
     @ManyToOne
     @JoinColumn(name = "store_admin_id", nullable = false)
-    @JsonIgnoreProperties({ "store", "branch", "password" })
+    @JsonIgnoreProperties({"store", "branch", "password"})
     private User storeAdmin;
 
     private LocalDateTime createdAt;
@@ -39,6 +38,15 @@ public class Store {
     private String storeType;
 
     private EStoreStatus status;
+
+    /**
+     * Links this store to its owning Business tenant.
+     * Set at store creation time from the owner's JWT tenantId.
+     * Null for stores created before the multi-tenant migration.
+     */
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
     @Embedded
     private StoreContact contact = new StoreContact();
 

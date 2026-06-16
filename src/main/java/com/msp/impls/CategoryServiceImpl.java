@@ -1,6 +1,7 @@
 package com.msp.impls;
 
 import com.msp.enums.EUserRole;
+import com.msp.exceptions.PortalException;
 import com.msp.mappers.CategoryMapper;
 import com.msp.models.Category;
 import com.msp.models.Store;
@@ -20,103 +21,106 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @CacheConfig(cacheNames = "categories")
 public class CategoryServiceImpl implements CategoryService {
+
     private final CategoryRepository catRepo;
     private final UserService userService;
     private final StoreRepository storeRepo;
 
     @Override
-    @Caching(
-            put = {
-                    @CachePut(key = "#result.id")
-            },
-            evict = {
-                    @CacheEvict(value = "categories-by-store", allEntries = true),
-                    @CacheEvict(value = "categories-page", allEntries = true)
-            }
-    )
+    @Transactional
+    @Caching(put = {
+            @CachePut(key = "#result.id")
+    }, evict = {
+            @CacheEvict(value = "categories-by-store", allEntries = true),
+            @CacheEvict(value = "categories-page",     allEntries = true)
+    })
     public CategoryDto createCategory(CategoryDto categoryDto) throws Exception {
         User user = userService.getCurrentUser();
-        Store store = storeRepo.findById(categoryDto.getStoreId()).orElseThrow(
-                () -> new Exception("Store Not Found")
-        );
+
+        Store store = storeRepo.findById(categoryDto.getStoreId())
+                .orElseThrow(() -> new PortalException("Store not found: " + categoryDto.getStoreId()));
+
+        assertStoreOwnership(user, store);
+
         Category category = Category.builder()
                 .store(store)
                 .name(categoryDto.getName())
+                .tenantId(store.getTenantId())
                 .build();
-        checkAuthority(user, category.getStore());
-        Category savedCategory = catRepo.save(category);
-        return CategoryMapper.toDto(savedCategory);
+
+        return CategoryMapper.toDto(catRepo.save(category));
     }
 
     @Override
     @Cacheable(value = "categories-page", key = "#storeId + '-' + #page + '-' + #size")
     public Page<CategoryDto> getCategoriesByStore(UUID storeId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return catRepo.findByStoreId(storeId, pageable)
-                .map(CategoryMapper::toDto);
+        return catRepo.findByStoreId(storeId, pageable).map(CategoryMapper::toDto);
     }
 
     @Override
-    @Caching(
-            put = {
-                    @CachePut(key = "#id")
-            },
-            evict = {
-                    @CacheEvict(value = "categories-by-store", allEntries = true),
-                    @CacheEvict(value = "categories-page", allEntries = true)
-            }
-    )
+    @Cacheable(key = "#id")
+    public CategoryDto getCategoryById(UUID id) throws Exception {
+        return catRepo.findById(id)
+                .map(CategoryMapper::toDto)
+                .orElseThrow(() -> new PortalException("Category not found: " + id));
+    }
+
+    @Override
+    @Transactional
+    @Caching(put = {
+            @CachePut(key = "#id")
+    }, evict = {
+            @CacheEvict(value = "categories-by-store", allEntries = true),
+            @CacheEvict(value = "categories-page",     allEntries = true)
+    })
     public CategoryDto updateCategory(UUID id, CategoryDto categoryDto) throws Exception {
-        Category category = catRepo.findById(id).orElseThrow(
-                () -> new Exception("Category Not Found")
-        );
+        Category category = catRepo.findById(id)
+                .orElseThrow(() -> new PortalException("Category not found: " + id));
+
         User user = userService.getCurrentUser();
+        assertStoreOwnership(user, category.getStore());
+
         category.setName(categoryDto.getName());
-        checkAuthority(user, category.getStore());
         return CategoryMapper.toDto(catRepo.save(category));
     }
 
     @Override
-    @Caching(
-            evict = {
-                    @CacheEvict(key = "#id"),
-                    @CacheEvict(value = "categories-by-store", allEntries = true),
-                    @CacheEvict(value = "categories-page", allEntries = true)
-            }
-    )
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(key = "#id"),
+            @CacheEvict(value = "categories-by-store", allEntries = true),
+            @CacheEvict(value = "categories-page",     allEntries = true)
+    })
     public void deleteCategory(UUID id) throws Exception {
-        Category category = catRepo.findById(id).orElseThrow(
-                () -> new Exception("Category Doesn't Exist!")
-        );
+        Category category = catRepo.findById(id)
+                .orElseThrow(() -> new PortalException("Category not found: " + id));
+
         User user = userService.getCurrentUser();
-        checkAuthority(user, category.getStore());
+        assertStoreOwnership(user, category.getStore());
+
         catRepo.delete(category);
     }
 
-    @Cacheable(key = "#id")
-    public CategoryDto getCategoryById(UUID id) throws Exception {
-        Category category = catRepo.findById(id).orElseThrow(
-                () -> new Exception("Category Not Found")
-        );
-        return CategoryMapper.toDto(category);
-    }
+    // ── Helper ───────────────────────────────────────────────────────────────
 
-
-    private void checkAuthority(User user, Store store) throws Exception {
-        boolean isAdmin = user.getRole().equals(EUserRole.ROLE_STORE_ADMIN);
-        boolean isManager = user.getRole().equals(EUserRole.ROLE_STORE_MANAGER);
-        boolean isSameStore = user.equals(store.getStoreAdmin());
-        if ((!isAdmin && !isManager) && !isSameStore) {
-            throw new Exception("You do not have permission to manage this category");
+    /**
+     * SUPER_ADMIN has unrestricted access.
+     * STORE_ADMIN / STORE_MANAGER: tenantId must match the store's tenantId.
+     * Bug fix: old code compared User objects instead of IDs.
+     */
+    private void assertStoreOwnership(User user, Store store) {
+        if (user.getRole() == EUserRole.ROLE_SUPER_ADMIN) return;
+        if (store.getTenantId() == null || !store.getTenantId().equals(user.getTenantId())) {
+            throw new PortalException("Store does not belong to your business tenant.");
         }
     }
 }

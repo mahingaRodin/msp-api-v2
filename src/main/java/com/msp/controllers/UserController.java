@@ -172,4 +172,26 @@ public class UserController {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(
+            summary = "Get total users count",
+            description = "Returns total number of users, optionally filtered by status"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    @GetMapping("/count")
+    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    public ResponseEntity<Long> getUsersCount(
+            @Parameter(description = "Filter by status (ACTIVE, SUSPENDED, DISCHARGED)")
+            @RequestParam(required = false) EUserStatus status
+    ) {
+
+        Page<UserDto> usersPage =
+                userService.getAllUsers(0, 1, "id", status);
+
+        long totalUsers = usersPage.getTotalElements();
+
+        return ResponseEntity.ok(totalUsers);
+    }
 }

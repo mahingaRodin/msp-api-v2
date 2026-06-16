@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+# Strips Cursor co-author trailers so cursoragent is not added as a contributor.
+COMMIT_MSG_FILE=$1
+sed -i.bak '/cursoragent@cursor\.com/d' "$COMMIT_MSG_FILE" 2>/dev/null || \
+  sed -i '' '/cursoragent@cursor\.com/d' "$COMMIT_MSG_FILE" 2>/dev/null || \
+  sed -i '/cursoragent@cursor\.com/d' "$COMMIT_MSG_FILE"
+sed -i.bak '/Co-authored-by: Cursor/d' "$COMMIT_MSG_FILE" 2>/dev/null || \
+  sed -i '' '/Co-authored-by: Cursor/d' "$COMMIT_MSG_FILE" 2>/dev/null || \
+  sed -i '/Co-authored-by: Cursor/d' "$COMMIT_MSG_FILE"
+sed -i.bak '/Made-with: Cursor/d' "$COMMIT_MSG_FILE" 2>/dev/null || \
+  sed -i '' '/Made-with: Cursor/d' "$COMMIT_MSG_FILE" 2>/dev/null || \
+  sed -i '/Made-with: Cursor/d' "$COMMIT_MSG_FILE"
+rm -f "${COMMIT_MSG_FILE}.bak"
