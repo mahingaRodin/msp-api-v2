@@ -12,10 +12,10 @@ if [[ ! -f docker-compose.yml ]]; then
   exit 1
 fi
 
-if [[ ! -f .env ]]; then
-  echo "Missing ${APP_ROOT}/.env — run bootstrap.sh first"
-  exit 1
+if [[ ! -x "${APP_ROOT}/bootstrap.sh" ]]; then
+  chmod +x "${APP_ROOT}/bootstrap.sh" 2>/dev/null || true
 fi
+bash "${APP_ROOT}/bootstrap.sh"
 
 if [[ -n "${IMAGE}" ]]; then
   if grep -q '^IMAGE=' .env; then
@@ -25,20 +25,30 @@ if [[ -n "${IMAGE}" ]]; then
   fi
 fi
 
+if grep -qE 'CHANGE_ME_|DB_USERNAME=$|DB_PASSWORD=$|JWT_SECRET=$' .env; then
+  echo "Invalid ${APP_ROOT}/.env — secrets are still placeholders or empty"
+  exit 1
+fi
+
 if [[ -f "${APP_ROOT}/ghcr.token" ]]; then
   echo "==> Logging in to GHCR"
   docker login ghcr.io -u mahingarodin --password-stdin < "${APP_ROOT}/ghcr.token"
 fi
 
-echo "==> Starting API stack with image $(grep '^IMAGE=' .env | cut -d= -f2- || true)"
-docker compose pull postgres redis api
-docker compose up -d --remove-orphans postgres redis api
+set -a
+# shellcheck disable=SC1091
+source "${APP_ROOT}/.env"
+set +a
+
+echo "==> Starting API stack with image ${IMAGE:-from .env}"
+docker compose --env-file "${APP_ROOT}/.env" pull postgres redis api
+docker compose --env-file "${APP_ROOT}/.env" up -d --remove-orphans postgres redis api
 
 echo "==> Waiting for API health"
 for i in $(seq 1 36); do
   if curl -sf --connect-timeout 2 http://127.0.0.1:5000/actuator/health >/dev/null; then
     echo "Health check OK"
-    docker compose ps
+    docker compose --env-file "${APP_ROOT}/.env" ps
     echo "API:     http://4.168.192.169:5000/swagger-ui.html"
     echo "UI:      http://4.168.192.169/  (after frontend image is deployed)"
     exit 0
@@ -47,6 +57,6 @@ for i in $(seq 1 36); do
 done
 
 echo "API did not become healthy in time"
-docker compose ps
-docker compose logs --tail=80 api
+docker compose --env-file "${APP_ROOT}/.env" ps
+docker compose --env-file "${APP_ROOT}/.env" logs --tail=80 postgres api
 exit 1
