@@ -116,9 +116,6 @@ jobs:
             set -euo pipefail
             sed -i 's/\r$//' ${{ env.APP_ROOT }}/*.sh ${{ env.APP_ROOT }}/docker-compose.yml 2>/dev/null || true
             chmod +x ${{ env.APP_ROOT }}/deploy.sh ${{ env.APP_ROOT }}/bootstrap.sh
-            if [[ ! -f ${{ env.APP_ROOT }}/.env ]]; then
-              bash ${{ env.APP_ROOT }}/bootstrap.sh
-            fi
             IMAGE="${IMAGE}" bash ${{ env.APP_ROOT }}/deploy.sh
 
       - name: Verify deployment
