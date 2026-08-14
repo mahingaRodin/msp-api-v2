@@ -1,9 +1,14 @@
-name: Build and Deploy to K3s
+name: Build and Deploy to Azure Docker
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: "SSH deploy to Azure after the image is pushed"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -11,7 +16,6 @@ permissions:
 
 env:
   APP_ROOT: /opt/apps/msp-api
-  NAMESPACE: msp
   SERVER_PORT: "22"
   IMAGE_NAME: msp-api
 
@@ -66,6 +70,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-push
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
     env:
       IMAGE: ${{ needs.build-and-push.outputs.image }}
 
@@ -83,9 +88,9 @@ jobs:
           port: ${{ env.SERVER_PORT }}
           script: |
             echo "SSH OK — $(whoami)@$(hostname)"
-            mkdir -p ${{ env.APP_ROOT }}/k8s ${{ env.APP_ROOT }}/secrets
+            mkdir -p ${{ env.APP_ROOT }}
 
-      - name: Upload deploy scripts (minimal)
+      - name: Upload Docker Compose deploy files
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -93,21 +98,9 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }}
           port: ${{ env.SERVER_PORT }}
-          source: "deploy/server/deploy.sh,deploy/server/bootstrap.sh,deploy/server/secrets.example.yaml"
+          source: "deploy/docker/docker-compose.yml,deploy/docker/deploy.sh,deploy/docker/bootstrap.sh,deploy/docker/env.example"
           target: "${{ env.APP_ROOT }}"
           strip_components: 2
-
-      - name: Upload Kubernetes manifests (minimal)
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }}
-          port: ${{ env.SERVER_PORT }}
-          source: "k8s/*"
-          target: "${{ env.APP_ROOT }}/k8s"
-          strip_components: 1
 
       - name: Deploy latest image on server
         uses: appleboy/ssh-action@v1.2.0
@@ -121,8 +114,11 @@ jobs:
           envs: IMAGE
           script: |
             set -euo pipefail
-            sed -i 's/\r$//' ${{ env.APP_ROOT }}/deploy.sh ${{ env.APP_ROOT }}/bootstrap.sh 2>/dev/null || true
-            chmod +x ${{ env.APP_ROOT }}/deploy.sh
+            sed -i 's/\r$//' ${{ env.APP_ROOT }}/*.sh ${{ env.APP_ROOT }}/docker-compose.yml 2>/dev/null || true
+            chmod +x ${{ env.APP_ROOT }}/deploy.sh ${{ env.APP_ROOT }}/bootstrap.sh
+            if [[ ! -f ${{ env.APP_ROOT }}/.env ]]; then
+              bash ${{ env.APP_ROOT }}/bootstrap.sh
+            fi
             IMAGE="${IMAGE}" bash ${{ env.APP_ROOT }}/deploy.sh
 
       - name: Verify deployment
@@ -134,7 +130,7 @@ jobs:
           passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }}
           port: ${{ env.SERVER_PORT }}
           script: |
-            kubectl get pods,svc,ingress -n ${{ env.NAMESPACE }}
-            curl -sf --connect-timeout 10 http://msp.185.181.10.165.nip.io/actuator/health \
+            docker compose -f ${{ env.APP_ROOT }}/docker-compose.yml ps
+            curl -sf --connect-timeout 10 http://127.0.0.1:5000/actuator/health \
               && echo "Health check OK" \
-              || echo "Check Traefik / firewall if URL not reachable"
+              || echo "Check Azure NSG port 5000 and docker logs"

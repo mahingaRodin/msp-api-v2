@@ -20,6 +20,7 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -64,15 +65,19 @@ public class AuthServiceImpl implements AuthService {
         newUser.setLastName(userDto.getLastName());
         newUser.setPhone(userDto.getPhone());
         newUser.setRole(userDto.getRole());
-        newUser.setUserStatus(EUserStatus.PENDING);
+        newUser.setUserStatus(EUserStatus.ACTIVE);
         newUser.setLastLogin(LocalDateTime.now());
         newUser.setCreatedAt(LocalDateTime.now());
         newUser.setUpdatedAt(LocalDateTime.now());
         User savedUser = userRepo.save(newUser);
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(userDto.getEmail(), userDto.getPassword());
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                savedUser.getEmail(),
+                null,
+                java.util.List.of(new SimpleGrantedAuthority(savedUser.getRole().name()))
+        );
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String token = provider.generateToken(authentication);
+        String token = provider.generateToken(authentication, savedUser);
 
         AuthResponse authResponse = new AuthResponse();
         authResponse.setJwt(token);
@@ -102,8 +107,10 @@ public class AuthServiceImpl implements AuthService {
         Authentication authentication = authenticate(email, password);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // Get and update user
         User user = userRepo.findByEmail(email);
+        if (user.getUserStatus() != EUserStatus.ACTIVE) {
+            throw new UserException("Account is " + user.getUserStatus().toString().toLowerCase());
+        }
         user.setLastLogin(LocalDateTime.now());
         user = userRepo.save(user);
 

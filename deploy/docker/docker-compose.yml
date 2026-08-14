@@ -1,0 +1,86 @@
+# MSP / POSify on Azure (ingoboka-dev). Isolated from ingoboka-* containers.
+# Host: 80 = UI (nginx) · 5000 = API (optional direct access)
+name: msp-api
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: msp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: msp_db
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - msp_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d msp_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    mem_limit: 256m
+    cpus: "0.25"
+
+  redis:
+    image: redis:7-alpine
+    container_name: msp-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    mem_limit: 64m
+    cpus: "0.10"
+
+  api:
+    image: ${IMAGE:-ghcr.io/mahingarodin/msp-api:latest}
+    container_name: msp-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/msp_db
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_SECRET: ${JWT_SECRET}
+      DEMO_SEED: ${DEMO_SEED:-true}
+      APP_PUBLIC_BASE_URL: ${APP_PUBLIC_BASE_URL:-http://4.168.192.169}
+      AWS_MESSAGING_ENABLED: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70.0 -XX:+UseContainerSupport"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5000/actuator/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+    mem_limit: 768m
+    cpus: "0.50"
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/mahingarodin/multi-tenant-pos-fe.v2:latest}
+    container_name: msp-frontend
+    restart: unless-stopped
+    profiles: ["web"]
+    ports:
+      - "${POS_HTTP_PORT:-80}:80"
+    depends_on:
+      api:
+        condition: service_started
+    mem_limit: 64m
+    cpus: "0.10"
+
+volumes:
+  msp_pgdata:
