@@ -20,7 +20,7 @@ public class ProductMapper {
                 .storeName(product.getStore() != null ? product.getStore().getBrand() : null)
                 .storeBrand(product.getStore() != null ? product.getStore().getBrand() : null)
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
-                .image(product.getImage())
+                .image(imageOrPlaceholder(product.getImage()))
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
                 .build();
@@ -38,5 +38,12 @@ public class ProductMapper {
                 .brand(productDto.getBrand())
                 .image(productDto.getImage())
                 .build();
+    }
+
+    private static String imageOrPlaceholder(String image) {
+        if (image != null && !image.isBlank()) {
+            return image;
+        }
+        return "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80";
     }
 }

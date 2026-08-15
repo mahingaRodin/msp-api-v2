@@ -20,6 +20,7 @@ import com.msp.enums.EActivationPurpose;
 import com.msp.services.AccountActivationService;
 import com.msp.services.AuditLogService;
 import com.msp.services.MailService;
+import com.msp.mail.EmailLayout;
 import com.msp.services.TenantProvisioningService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -106,8 +107,11 @@ public class TenantProvisioningServiceImpl implements TenantProvisioningService 
         activationService.sendActivation(owner, EActivationPurpose.STORE_OWNER);
         try {
             mailService.send(owner.getEmail(), "Your POSify store was approved",
-                    "<p>Hi " + owner.getFirstName() + ", <b>" + business.getBusinessName()
-                            + "</b> is approved. Use the activation email to set your password and open the business portal.</p>");
+                    EmailLayout.wrap(
+                            "Your store was approved",
+                            "<p>Hi " + owner.getFirstName() + ", <b>" + business.getBusinessName()
+                                    + "</b> is approved. Use the activation email to set your password and open the business portal.</p>"
+                    ));
         } catch (Exception ignored) {
             // activation email is the source of truth
         }

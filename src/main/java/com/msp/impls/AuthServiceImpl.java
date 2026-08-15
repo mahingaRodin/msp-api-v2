@@ -5,6 +5,7 @@ import com.msp.enums.EUserRole;
 import com.msp.enums.EUserStatus;
 import com.msp.exceptions.UserException;
 import com.msp.mappers.UserMapper;
+import com.msp.mail.EmailLayout;
 import com.msp.models.Customer;
 import com.msp.models.User;
 import com.msp.payloads.dtos.UserDto;
@@ -183,13 +184,11 @@ public class AuthServiceImpl implements AuthService {
         mailService.send(
                 user.getEmail(),
                 "Your POSify verification code",
-                """
-                <div style="font-family:sans-serif;max-width:560px">
-                  <h2>Verify your POSify account</h2>
-                  <p>Hi %s, use this code within 10 minutes:</p>
-                  <p style="font-size:28px;letter-spacing:8px;font-weight:700">%s</p>
-                </div>
-                """.formatted(user.getFirstName(), otp)
+                EmailLayout.wrap(
+                        "Verify your POSify account",
+                        "<p>Hi %s, use this code within 10 minutes:</p>%s"
+                                .formatted(user.getFirstName(), EmailLayout.code(otp))
+                )
         );
     }
 
