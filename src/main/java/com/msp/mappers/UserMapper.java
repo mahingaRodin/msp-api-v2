@@ -24,6 +24,7 @@ public class UserMapper {
         userDto.setProfilePicture(savedUser.getProfilePicture());
         userDto.setBranchId(savedUser.getBranch() != null ? savedUser.getBranch().getId() : null);
         userDto.setStoreId(savedUser.getStore() != null ? savedUser.getStore().getId() : null);
+        userDto.setTenantId(savedUser.getTenantId());
         return userDto;
     }
 

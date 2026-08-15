@@ -35,6 +35,11 @@ public class StoreMapper {
         store.setStoreType(storeDto.getStoreType());
         store.setStatus(storeDto.getStatus());
         store.setContact(storeDto.getContact());
+        if (storeDto.getTenantId() != null) {
+            store.setTenantId(storeDto.getTenantId());
+        } else if (storeAdmin != null) {
+            store.setTenantId(storeAdmin.getTenantId());
+        }
         return store;
     }
 }

@@ -55,7 +55,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Cacheable(value = "users-by-token", key = "#token")
     public User getCurrentUserFromToken(String token) throws UserException {
         String email = provider.getEmailFromToken(token);
         User user = userRepo.findByEmail(email);
@@ -76,7 +75,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Cacheable(key = "#email")
     public User getUserByEmail(String email) throws UserException {
         User user = userRepo.findByEmail(email);
         if (user == null) {

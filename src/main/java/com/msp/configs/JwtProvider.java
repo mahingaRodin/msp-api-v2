@@ -43,6 +43,23 @@ public class JwtProvider {
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         String roles = populateAuthorities(authorities);
 
+        String storeClaim = null;
+        String branchClaim = null;
+        try {
+            if (user.getStore() != null && user.getStore().getId() != null) {
+                storeClaim = user.getStore().getId().toString();
+            }
+        } catch (RuntimeException ignored) {
+            // lazy store association not loaded
+        }
+        try {
+            if (user.getBranch() != null && user.getBranch().getId() != null) {
+                branchClaim = user.getBranch().getId().toString();
+            }
+        } catch (RuntimeException ignored) {
+            // lazy branch association not loaded
+        }
+
         return Jwts.builder()
                 .issuedAt(new Date())
                 .expiration(new Date(new Date().getTime() + 86400000))
@@ -51,6 +68,8 @@ public class JwtProvider {
                 .claim("userId",    user.getId() != null ? user.getId().toString() : null)
                 .claim("tenantId",  user.getTenantId() != null ? user.getTenantId().toString() : null)
                 .claim("role",      user.getRole() != null ? user.getRole().name() : null)
+                .claim("storeId",   storeClaim)
+                .claim("branchId",  branchClaim)
                 .signWith(key)
                 .compact();
     }
