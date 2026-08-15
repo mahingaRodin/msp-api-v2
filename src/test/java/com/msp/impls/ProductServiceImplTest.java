@@ -374,7 +374,7 @@ class ProductServiceImplTest {
                     .isInstanceOf(PortalException.class)
                     .hasMessageContaining("does not belong");
 
-            verify(productRepo, never()).delete(any());
+            verify(productRepo, never()).delete(any(Product.class));
         }
 
         @Test
