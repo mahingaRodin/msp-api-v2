@@ -57,8 +57,7 @@ public class DataInitializer implements CommandLineRunner {
             log.info("=== Data Initialization Complete! ===");
 
         } catch (Exception e) {
-            log.error("Error during data initialization", e);
-            throw e;
+            log.error("Error during data initialization — continuing without blocking startup", e);
         }
     }
 }
