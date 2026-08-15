@@ -16,10 +16,12 @@ public class UserMapper {
         userDto.setRole(savedUser.getRole());
         userDto.setUserStatus(savedUser.getUserStatus());
         userDto.setCreatedAt(savedUser.getCreatedAt());
-        userDto.setPassword(savedUser.getPassword());
         userDto.setUpdatedAt(savedUser.getUpdatedAt());
         userDto.setLastLogin(savedUser.getLastLogin());
         userDto.setPhone(savedUser.getPhone());
+        userDto.setPassword(null);
+        userDto.setEmailVerified(savedUser.isEmailVerified());
+        userDto.setProfilePicture(savedUser.getProfilePicture());
         userDto.setBranchId(savedUser.getBranch() != null ? savedUser.getBranch().getId() : null);
         userDto.setStoreId(savedUser.getStore() != null ? savedUser.getStore().getId() : null);
         return userDto;

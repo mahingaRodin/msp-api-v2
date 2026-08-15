@@ -42,9 +42,8 @@ public class SecurityConfig {
 
                         // public
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/registrations", "/api/registrations/*/status").permitAll()
-                        .requestMatchers("/api/registrations/*/resubmit").permitAll()
-                        .requestMatchers("/api/customers/register").permitAll()
+                        .requestMatchers("/api/registrations", "/api/registrations/**").permitAll()
+                        .requestMatchers("/api/catalog/**").permitAll()
                         .requestMatchers("/api/products/store/**", "/api/products/{id}").permitAll()
                         .requestMatchers("/api/categories/store/**", "/api/categories/{id}").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()

@@ -26,6 +26,11 @@ public class ProductDto {
     private CategoryDto category;
     private UUID categoryId;
     private UUID storeId;
+    private String storeName;
+    private String storeBrand;
+    private String categoryName;
+    private Long stockQuantity;
+    private Boolean favorite;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

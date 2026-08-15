@@ -10,5 +10,6 @@ import java.util.UUID;
 
 public interface InventoryRepository extends JpaRepository<Inventory, UUID> {
     Inventory findByProductIdAndBranchId(UUID productId, UUID branchId);
+    List<Inventory> findByProductId(UUID productId);
     Page<Inventory> findByBranchId(UUID branchId, Pageable pageable);
 }

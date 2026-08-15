@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -301,6 +302,7 @@ public class ShiftReportController {
                     content = @Content
             )
     })
+    @PreAuthorize("hasAnyAuthority('ROLE_BRANCH_MANAGER','ROLE_STORE_ADMIN','ROLE_STORE_MANAGER','ROLE_SUPER_ADMIN')")
     @GetMapping("/branch/{branchId}")
     public ResponseEntity<List<ShiftReportDto>> getShiftReportByBranch(
             @Parameter(
@@ -314,6 +316,15 @@ public class ShiftReportController {
         return ResponseEntity.ok(
                 shiftReportService.getShiftReportByBranchId(branchId)
         );
+    }
+
+    @PreAuthorize("hasAnyAuthority('ROLE_BRANCH_MANAGER','ROLE_STORE_ADMIN','ROLE_STORE_MANAGER','ROLE_SUPER_ADMIN')")
+    @GetMapping("/branch/{branchId}/open")
+    public ResponseEntity<List<ShiftReportDto>> getOpenShifts(@PathVariable UUID branchId) {
+        List<ShiftReportDto> open = shiftReportService.getShiftReportByBranchId(branchId).stream()
+                .filter(s -> s.getShiftEnd() == null)
+                .toList();
+        return ResponseEntity.ok(open);
     }
 
     @Operation(

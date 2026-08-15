@@ -73,6 +73,9 @@ public class TenantRegistration {
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
+    @Column(name = "more_info_message", columnDefinition = "TEXT")
+    private String moreInfoMessage;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewed_by_id")
     @JsonIgnoreProperties({"password", "store", "branch"})

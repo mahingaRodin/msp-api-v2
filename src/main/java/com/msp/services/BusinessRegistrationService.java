@@ -46,8 +46,10 @@ public interface BusinessRegistrationService {
      */
     TenantRegistrationDto markUnderReview(UUID registrationId);
 
+    TenantRegistrationDto requestMoreInfo(UUID registrationId, String message);
+
     /**
-     * Allows an applicant to update and resubmit a REJECTED registration.
+     * Allows an applicant to update and resubmit a REJECTED or MORE_INFO registration.
      * Resets status back to PENDING for re-review.
      */
     TenantRegistrationDto resubmitRegistration(UUID registrationId, BusinessRegistrationRequest updated);

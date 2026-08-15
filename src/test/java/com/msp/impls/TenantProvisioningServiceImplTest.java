@@ -42,6 +42,8 @@ class TenantProvisioningServiceImplTest {
     @Mock private UserRepository userRepo;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private AuditLogService auditLogService;
+    @Mock private com.msp.services.AccountActivationService activationService;
+    @Mock private com.msp.services.MailService mailService;
 
     @InjectMocks
     private TenantProvisioningServiceImpl service;
@@ -141,7 +143,7 @@ class TenantProvisioningServiceImplTest {
             assertThat(capturedUser.getFirstName()).isEqualTo("Alice");
             assertThat(capturedUser.getLastName()).isEqualTo("Doe");
             assertThat(capturedUser.getRole()).isEqualTo(EUserRole.ROLE_STORE_ADMIN);
-            assertThat(capturedUser.getUserStatus()).isEqualTo(EUserStatus.ACTIVE);
+            assertThat(capturedUser.getUserStatus()).isEqualTo(EUserStatus.PENDING);
             assertThat(capturedUser.getTenantId()).isNotNull();
             assertThat(capturedUser.getPassword()).isEqualTo("hashed-temp-password");
 

@@ -1,6 +1,8 @@
 package com.msp.impls;
 
+import com.msp.enums.EActivationPurpose;
 import com.msp.enums.EUserRole;
+import com.msp.enums.EUserStatus;
 import com.msp.mappers.UserMapper;
 import com.msp.models.Branch;
 import com.msp.models.Store;
@@ -9,6 +11,7 @@ import com.msp.payloads.dtos.UserDto;
 import com.msp.repositories.BranchRepository;
 import com.msp.repositories.StoreRepository;
 import com.msp.repositories.UserRepository;
+import com.msp.services.AccountActivationService;
 import com.msp.services.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheConfig;
@@ -35,6 +38,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final StoreRepository storeRepository;
     private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AccountActivationService activationService;
 
     @Override
     @Caching(
@@ -61,13 +65,22 @@ public class EmployeeServiceImpl implements EmployeeService {
         User user = UserMapper.toEntity(employee);
         user.setStore(store);
         user.setBranch(branch);
-        user.setPassword(passwordEncoder.encode(employee.getPassword()));
+        String raw = employee.getPassword() != null && !employee.getPassword().isBlank()
+                ? employee.getPassword() : java.util.UUID.randomUUID().toString();
+        user.setPassword(passwordEncoder.encode(raw));
+        user.setUserStatus(EUserStatus.PENDING);
+        user.setEmailVerified(true);
+        user.setRole(employee.getRole() != null ? employee.getRole() : EUserRole.ROLE_STORE_MANAGER);
 
         User savedEmployee = userRepository.save(user);
         if(employee.getRole()==EUserRole.ROLE_BRANCH_MANAGER && branch!=null) {
             branch.setManager(savedEmployee);
             branchRepository.save(branch);
         }
+        activationService.sendActivation(savedEmployee,
+                employee.getRole() == EUserRole.ROLE_BRANCH_MANAGER
+                        ? EActivationPurpose.BRANCH_MANAGER
+                        : EActivationPurpose.STORE_MANAGER);
         return UserMapper.toDTO(savedEmployee);
     }
 
@@ -89,8 +102,19 @@ public class EmployeeServiceImpl implements EmployeeService {
                 || employee.getRole() == EUserRole.ROLE_BRANCH_MANAGER) {
             User user = UserMapper.toEntity(employee);
             user.setBranch(branch);
-            user.setPassword(passwordEncoder.encode(employee.getPassword()));
-            return UserMapper.toDTO(userRepository.save(user));
+            user.setStore(branch.getStore());
+            String raw = employee.getPassword() != null && !employee.getPassword().isBlank()
+                    ? employee.getPassword() : java.util.UUID.randomUUID().toString();
+            user.setPassword(passwordEncoder.encode(raw));
+            user.setUserStatus(EUserStatus.PENDING);
+            user.setEmailVerified(true);
+            user.setRole(employee.getRole());
+            User saved = userRepository.save(user);
+            activationService.sendActivation(saved,
+                    employee.getRole() == EUserRole.ROLE_BRANCH_CASHIER
+                            ? EActivationPurpose.CASHIER
+                            : EActivationPurpose.BRANCH_MANAGER);
+            return UserMapper.toDTO(saved);
         }
         throw new Exception("Branch Role Not Supported!");
     }

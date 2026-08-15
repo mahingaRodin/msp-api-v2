@@ -48,6 +48,7 @@ class BusinessPortalServiceImplTest {
     @Mock private UserRepository userRepo;
     @Mock private UserService userService;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private com.msp.services.AccountActivationService activationService;
 
     @InjectMocks
     private BusinessPortalServiceImpl service;
@@ -434,7 +435,7 @@ class BusinessPortalServiceImplTest {
             assertThat(saved.getTenantId()).isEqualTo(tenantId);
             assertThat(saved.getStore()).isEqualTo(s);
             assertThat(saved.getPassword()).isEqualTo("$2a$hashed");
-            assertThat(saved.getUserStatus()).isEqualTo(EUserStatus.ACTIVE);
+            assertThat(saved.getUserStatus()).isEqualTo(EUserStatus.PENDING);
         }
 
         @Test

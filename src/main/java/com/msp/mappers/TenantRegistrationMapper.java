@@ -23,6 +23,7 @@ public class TenantRegistrationMapper {
         dto.setStatus(reg.getStatus());
         dto.setAdminNotes(reg.getAdminNotes());
         dto.setRejectionReason(reg.getRejectionReason());
+        dto.setMoreInfoMessage(reg.getMoreInfoMessage());
         dto.setSubmittedAt(reg.getSubmittedAt());
         dto.setReviewedAt(reg.getReviewedAt());
         dto.setProvisionedTenantId(reg.getProvisionedTenantId());
