@@ -26,6 +26,7 @@ public class TenantRegistrationDto {
     private ERegistrationStatus status;
     private String adminNotes;
     private String rejectionReason;
+    private String moreInfoMessage;
 
     private UUID reviewedById;
     private String reviewedByName;

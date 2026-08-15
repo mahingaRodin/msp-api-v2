@@ -27,7 +27,7 @@ import java.util.UUID;
 @RequestMapping("/api/portal/business")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer Authentication")
-@PreAuthorize("hasRole('ROLE_STORE_ADMIN')")
+@PreAuthorize("hasAnyAuthority('ROLE_STORE_ADMIN','ROLE_STORE_MANAGER')")
 @Tag(name = "Business Portal",
      description = "Store, branch, and employee management for approved business owners")
 public class BusinessPortalController {

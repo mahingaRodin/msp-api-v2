@@ -215,4 +215,14 @@ public class BusinessRegistrationController {
                 registrationService.rejectRegistration(id, body.getRejectionReason())
         );
     }
+
+    @PostMapping("/api/admin/registrations/{id}/more-info")
+    @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+    public ResponseEntity<TenantRegistrationDto> requestMoreInfo(
+            @PathVariable UUID id,
+            @Valid @RequestBody RegistrationDecisionRequest body
+    ) {
+        String msg = body.getAdminNotes() != null ? body.getAdminNotes() : body.getRejectionReason();
+        return ResponseEntity.ok(registrationService.requestMoreInfo(id, msg));
+    }
 }

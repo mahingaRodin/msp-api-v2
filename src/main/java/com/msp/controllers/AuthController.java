@@ -91,15 +91,31 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> loginHandler(
-            @Parameter(
-                    description = "User login credentials (email/username and password)",
-                    required = true,
-                    schema = @Schema(implementation = UserDto.class)
-            )
             @Valid @RequestBody UserDto userDto
     ) throws UserException {
-        return ResponseEntity.ok(
-                authsService.login(userDto)
-        );
+        return ResponseEntity.ok(authsService.login(userDto));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<AuthResponse> verifyOtp(@Valid @RequestBody com.msp.payloads.request.VerifyOtpRequest body) {
+        return ResponseEntity.ok(authsService.verifyOtp(body.getEmail(), body.getOtp()));
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<com.msp.payloads.response.ApiResponse2> resendOtp(
+            @Valid @RequestBody com.msp.payloads.request.ResendOtpRequest body) {
+        authsService.resendOtp(body.getEmail());
+        com.msp.payloads.response.ApiResponse2 res = new com.msp.payloads.response.ApiResponse2();
+        res.setMessage("A new code was sent to your email.");
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/activate")
+    public ResponseEntity<AuthResponse> activate(
+            @Valid @RequestBody com.msp.payloads.request.ActivateAccountRequest body) {
+        if (!body.getPassword().equals(body.getConfirmPassword())) {
+            throw new UserException("Passwords do not match");
+        }
+        return ResponseEntity.ok(authsService.activateAccount(body.getToken(), body.getPassword()));
     }
 }

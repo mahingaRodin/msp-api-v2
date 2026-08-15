@@ -26,12 +26,13 @@ public class UserDto {
 
     private EUserStatus userStatus;
 
-    @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
     private UUID branchId;
     private UUID storeId;
+    private Boolean emailVerified;
+    private String profilePicture;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

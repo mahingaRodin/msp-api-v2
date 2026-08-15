@@ -71,7 +71,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         LocalDateTime now = LocalDateTime.now();
 
         User owner = saveUser("Aline", "Uwase", MANAGER_EMAIL, "+250780000001",
-                EUserRole.ROLE_STORE_MANAGER, tenantId, encoded, now);
+                EUserRole.ROLE_STORE_ADMIN, tenantId, encoded, now);
 
         Business business = Business.builder()
                 .tenantId(tenantId)
@@ -162,6 +162,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 .role(role)
                 .password(encoded)
                 .userStatus(EUserStatus.ACTIVE)
+                .emailVerified(true)
                 .tenantId(tenantId)
                 .createdAt(now)
                 .updatedAt(now)

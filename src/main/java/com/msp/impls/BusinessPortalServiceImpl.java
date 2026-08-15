@@ -19,8 +19,10 @@ import com.msp.payloads.request.CreateStoreRequest;
 import com.msp.repositories.BranchRepository;
 import com.msp.repositories.StoreRepository;
 import com.msp.repositories.UserRepository;
+import com.msp.services.AccountActivationService;
 import com.msp.services.BusinessPortalService;
 import com.msp.services.UserService;
+import com.msp.enums.EActivationPurpose;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -43,6 +45,7 @@ public class BusinessPortalServiceImpl implements BusinessPortalService {
     private final UserRepository userRepo;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final AccountActivationService activationService;
 
     // ── Store management ─────────────────────────────────────────────────────
 
@@ -201,9 +204,13 @@ public class BusinessPortalServiceImpl implements BusinessPortalService {
         employee.setLastName(request.getLastName());
         employee.setEmail(request.getEmail());
         employee.setPhone(request.getPhone());
-        employee.setPassword(passwordEncoder.encode(request.getPassword()));
+        String rawPassword = request.getPassword() != null && !request.getPassword().isBlank()
+                ? request.getPassword()
+                : UUID.randomUUID().toString();
+        employee.setPassword(passwordEncoder.encode(rawPassword));
         employee.setRole(request.getRole());
-        employee.setUserStatus(EUserStatus.ACTIVE);
+        employee.setUserStatus(EUserStatus.PENDING);
+        employee.setEmailVerified(true);
         employee.setTenantId(tenantId);
         employee.setStore(store);
         employee.setBranch(branch);
@@ -212,11 +219,18 @@ public class BusinessPortalServiceImpl implements BusinessPortalService {
 
         User saved = userRepo.save(employee);
 
-        // Assign branch manager role on the branch entity
         if (request.getRole() == EUserRole.ROLE_BRANCH_MANAGER && branch != null) {
             branch.setManager(saved);
             branchRepo.save(branch);
         }
+
+        EActivationPurpose purpose = switch (saved.getRole()) {
+            case ROLE_BRANCH_MANAGER -> EActivationPurpose.BRANCH_MANAGER;
+            case ROLE_BRANCH_CASHIER -> EActivationPurpose.CASHIER;
+            case ROLE_STORE_MANAGER -> EActivationPurpose.STORE_MANAGER;
+            default -> EActivationPurpose.STAFF;
+        };
+        activationService.sendActivation(saved, purpose);
 
         log.info("Employee created: id={}, role={}, tenantId={}",
                 saved.getId(), saved.getRole(), tenantId);

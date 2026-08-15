@@ -41,6 +41,7 @@ public class DataInitializer implements CommandLineRunner {
                         .lastName("Rodin")
                         .role(EUserRole.ROLE_SUPER_ADMIN)
                         .userStatus(EUserStatus.ACTIVE)
+                        .emailVerified(true)
                         .phone("+250794415318")
                         .tenantId(null)   // super admin has no tenant
                         .createdAt(LocalDateTime.now())

@@ -16,7 +16,10 @@ import com.msp.payloads.response.ProvisioningResponse;
 import com.msp.repositories.BusinessRepository;
 import com.msp.repositories.TenantRegistrationRepository;
 import com.msp.repositories.UserRepository;
+import com.msp.enums.EActivationPurpose;
+import com.msp.services.AccountActivationService;
 import com.msp.services.AuditLogService;
+import com.msp.services.MailService;
 import com.msp.services.TenantProvisioningService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +40,8 @@ public class TenantProvisioningServiceImpl implements TenantProvisioningService 
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final AccountActivationService activationService;
+    private final MailService mailService;
 
     // ── Provision ────────────────────────────────────────────────────────────
 
@@ -59,9 +64,7 @@ public class TenantProvisioningServiceImpl implements TenantProvisioningService 
         }
 
         UUID tenantId = UUID.randomUUID();
-
-        // Temporary password — owner must change on first login
-        String tempPassword = tenantId.toString().replace("-", "").substring(0, 12);
+        String placeholder = UUID.randomUUID().toString();
 
         User owner = new User();
         owner.setFirstName(reg.getOwnerFirstName());
@@ -69,8 +72,9 @@ public class TenantProvisioningServiceImpl implements TenantProvisioningService 
         owner.setEmail(reg.getOwnerEmail());
         owner.setPhone(reg.getOwnerPhone());
         owner.setRole(EUserRole.ROLE_STORE_ADMIN);
-        owner.setPassword(passwordEncoder.encode(tempPassword));
-        owner.setUserStatus(EUserStatus.ACTIVE);
+        owner.setPassword(passwordEncoder.encode(placeholder));
+        owner.setUserStatus(EUserStatus.PENDING);
+        owner.setEmailVerified(true);
         owner.setTenantId(tenantId);
         owner.setCreatedAt(LocalDateTime.now());
         owner.setUpdatedAt(LocalDateTime.now());
@@ -98,13 +102,21 @@ public class TenantProvisioningServiceImpl implements TenantProvisioningService 
 
         log.info("Tenant provisioned: tenantId={}, businessName={}, ownerEmail={}",
                 tenantId, business.getBusinessName(), owner.getEmail());
-        log.info("Temp credentials for {} — must be changed on first login", owner.getEmail());
+
+        activationService.sendActivation(owner, EActivationPurpose.STORE_OWNER);
+        try {
+            mailService.send(owner.getEmail(), "Your POSify store was approved",
+                    "<p>Hi " + owner.getFirstName() + ", <b>" + business.getBusinessName()
+                            + "</b> is approved. Use the activation email to set your password and open the business portal.</p>");
+        } catch (Exception ignored) {
+            // activation email is the source of truth
+        }
 
         return new ProvisioningResponse(
                 tenantId,
                 business.getId(),
                 owner.getEmail(),
-                "Tenant provisioned successfully. Credentials sent to " + owner.getEmail()
+                "Tenant provisioned. Activation link sent to " + owner.getEmail()
         );
     }
 

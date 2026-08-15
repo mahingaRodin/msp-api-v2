@@ -27,7 +27,10 @@ import com.msp.enums.EOutboxStatus;
 import com.msp.events.RegistrationEventPayload;
 import com.msp.models.OutboxEvent;
 import com.msp.repositories.OutboxEventRepository;
+import com.msp.repositories.AdminNotificationRepository;
 import com.msp.services.AwsSnsService;
+import com.msp.services.MailService;
+import com.msp.models.AdminNotification;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
@@ -45,12 +48,17 @@ public class BusinessRegistrationServiceImpl implements BusinessRegistrationServ
     private final AwsSnsService snsService;
     private final OutboxEventRepository outboxRepo;
     private final ObjectMapper objectMapper;
+    private final MailService mailService;
+    private final AdminNotificationRepository notificationRepo;
 
     @Value("${aws.sqs.notification-queue-url}")
     private String notificationQueueUrl;
 
     @Value("${aws.sns.admin-topic-arn}")
     private String adminTopicArn;
+
+    @Value("${app.admin.email:mahingarodin@gmail.com}")
+    private String adminEmail;
 
     // ── Submit ──────────────────────────────────────────────────────────────
 
@@ -122,6 +130,60 @@ public class BusinessRegistrationServiceImpl implements BusinessRegistrationServ
             snsService.publishNotification(adminTopicArn, "New MSP Registration", adminMsg);
         } catch (Exception e) {
             log.error("Failed to publish SNS notification for new registration: {}", reg.getId(), e);
+        }
+
+        notificationRepo.save(AdminNotification.builder()
+                .title("New business application: " + reg.getBusinessName())
+                .body(reg.getOwnerFirstName() + " " + reg.getOwnerLastName()
+                        + " (" + reg.getOwnerEmail() + ") submitted " + reg.getBusinessName()
+                        + ". Review it in Businesses.")
+                .registrationId(reg.getId())
+                .read(false)
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        String details = """
+                <div style="font-family:sans-serif;max-width:640px">
+                  <h2>New POSify business application</h2>
+                  <p><b>%s</b> wants to join the platform.</p>
+                  <ul>
+                    <li>Owner: %s %s</li>
+                    <li>Email: %s</li>
+                    <li>Phone: %s</li>
+                    <li>Legal name: %s</li>
+                    <li>Reg no: %s</li>
+                    <li>Country: %s</li>
+                    <li>Industry: %s</li>
+                  </ul>
+                  <p>%s</p>
+                </div>
+                """.formatted(
+                reg.getBusinessName(),
+                reg.getOwnerFirstName(), reg.getOwnerLastName(),
+                reg.getOwnerEmail(),
+                nvl(reg.getOwnerPhone()),
+                nvl(reg.getLegalName()),
+                nvl(reg.getRegistrationNumber()),
+                nvl(reg.getCountry()),
+                nvl(reg.getIndustry()),
+                nvl(reg.getBusinessDescription())
+        );
+        try {
+            mailService.send(adminEmail, "New business application: " + reg.getBusinessName(), details);
+        } catch (Exception e) {
+            log.error("Failed to email admin about registration {}", reg.getId(), e);
+        }
+        try {
+            mailService.send(reg.getOwnerEmail(), "We received your POSify application",
+                    """
+                    <div style="font-family:sans-serif;max-width:560px">
+                      <h2>Application received</h2>
+                      <p>Hi %s, your details for <b>%s</b> were sent to POSify admin and are under review.</p>
+                      <p>You will get another email when the application is approved, rejected, or if we need more information.</p>
+                    </div>
+                    """.formatted(reg.getOwnerFirstName(), reg.getBusinessName()));
+        } catch (Exception e) {
+            log.error("Failed to email applicant {}", reg.getOwnerEmail(), e);
         }
 
         return TenantRegistrationMapper.toDto(reg);
@@ -236,9 +298,10 @@ public class BusinessRegistrationServiceImpl implements BusinessRegistrationServ
                                                        BusinessRegistrationRequest updated) {
         TenantRegistration reg = findOrThrow(registrationId);
 
-        if (reg.getStatus() != ERegistrationStatus.REJECTED) {
+        if (reg.getStatus() != ERegistrationStatus.REJECTED
+                && reg.getStatus() != ERegistrationStatus.MORE_INFO) {
             throw new BusinessRegistrationException(
-                    "Only REJECTED registrations can be resubmitted. Current status: " + reg.getStatus());
+                    "Only REJECTED or MORE_INFO registrations can be resubmitted. Current status: " + reg.getStatus());
         }
 
         // Update fields from the new request
@@ -269,6 +332,38 @@ public class BusinessRegistrationServiceImpl implements BusinessRegistrationServ
         return TenantRegistrationMapper.toDto(reg);
     }
 
+    @Override
+    @Transactional
+    public TenantRegistrationDto requestMoreInfo(UUID registrationId, String message) {
+        TenantRegistration reg = findOrThrow(registrationId);
+        assertTransitionAllowed(reg, ERegistrationStatus.MORE_INFO);
+        User admin = getCurrentAdminFromContext();
+        reg.setStatus(ERegistrationStatus.MORE_INFO);
+        reg.setMoreInfoMessage(message);
+        reg.setAdminNotes(message);
+        reg.setReviewedBy(admin);
+        reg.setReviewedAt(LocalDateTime.now());
+        reg = registrationRepo.save(reg);
+        try {
+            mailService.send(reg.getOwnerEmail(), "POSify needs more information",
+                    """
+                    <div style="font-family:sans-serif;max-width:560px">
+                      <h2>More information needed</h2>
+                      <p>Hi %s, admin reviewed <b>%s</b> and asked:</p>
+                      <blockquote>%s</blockquote>
+                      <p>Reply by resubmitting your application with the missing details.</p>
+                    </div>
+                    """.formatted(reg.getOwnerFirstName(), reg.getBusinessName(), message == null ? "" : message));
+        } catch (Exception e) {
+            log.error("Failed to send more-info email", e);
+        }
+        return TenantRegistrationMapper.toDto(reg);
+    }
+
+    private String nvl(String v) {
+        return v == null ? "—" : v;
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────
 
     private TenantRegistration findOrThrow(UUID id) {
@@ -291,8 +386,14 @@ public class BusinessRegistrationServiceImpl implements BusinessRegistrationServ
         boolean allowed = switch (current) {
             case PENDING      -> target == ERegistrationStatus.UNDER_REVIEW
                                  || target == ERegistrationStatus.APPROVED
-                                 || target == ERegistrationStatus.REJECTED;
+                                 || target == ERegistrationStatus.REJECTED
+                                 || target == ERegistrationStatus.MORE_INFO;
             case UNDER_REVIEW -> target == ERegistrationStatus.APPROVED
+                                 || target == ERegistrationStatus.REJECTED
+                                 || target == ERegistrationStatus.MORE_INFO;
+            case MORE_INFO    -> target == ERegistrationStatus.PENDING
+                                 || target == ERegistrationStatus.UNDER_REVIEW
+                                 || target == ERegistrationStatus.APPROVED
                                  || target == ERegistrationStatus.REJECTED;
             case APPROVED, REJECTED -> false;
         };
