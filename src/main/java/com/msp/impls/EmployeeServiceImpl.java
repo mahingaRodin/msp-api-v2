@@ -65,6 +65,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         User user = UserMapper.toEntity(employee);
         user.setStore(store);
         user.setBranch(branch);
+        user.setTenantId(store.getTenantId());
         String raw = employee.getPassword() != null && !employee.getPassword().isBlank()
                 ? employee.getPassword() : java.util.UUID.randomUUID().toString();
         user.setPassword(passwordEncoder.encode(raw));
@@ -103,6 +104,9 @@ public class EmployeeServiceImpl implements EmployeeService {
             User user = UserMapper.toEntity(employee);
             user.setBranch(branch);
             user.setStore(branch.getStore());
+            user.setTenantId(branch.getTenantId() != null
+                    ? branch.getTenantId()
+                    : (branch.getStore() != null ? branch.getStore().getTenantId() : null));
             String raw = employee.getPassword() != null && !employee.getPassword().isBlank()
                     ? employee.getPassword() : java.util.UUID.randomUUID().toString();
             user.setPassword(passwordEncoder.encode(raw));

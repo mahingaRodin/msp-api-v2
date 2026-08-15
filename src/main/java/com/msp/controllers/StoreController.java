@@ -66,7 +66,7 @@ public class StoreController {
                         @ApiResponse(responseCode = "404", description = "Store not found with the given ID", content = @Content),
                         @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content)
         })
-        @GetMapping("/{id}")
+        @GetMapping("/{id:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}")
         public ResponseEntity<StoreDto> getStoreById(
                         @Parameter(name = "id", description = "UUID of the store to retrieve", required = true, example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable UUID id,
 

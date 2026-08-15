@@ -8,7 +8,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -25,17 +24,17 @@ public class JwtValidator extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        // request.getRequestURI() includes context-path (/msp)
         String uri = request.getRequestURI();
-
-        // Allow swagger + openapi + actuator + basic static resources without JWT
-        return uri.startsWith("/msp/swagger-ui")
-                || uri.startsWith("/msp/v3/api-docs")
-                || uri.startsWith("/msp/actuator")
-                || uri.startsWith("/msp/api/auth")
-                || uri.equals("/msp/swagger-ui.html")
-                || uri.startsWith("/msp/favicon.ico")
-                || uri.startsWith("/msp/webjars");
+        if (uri == null) {
+            return false;
+        }
+        // Works with or without servlet context-path (/msp)
+        return uri.contains("/api/auth")
+                || uri.contains("/swagger-ui")
+                || uri.contains("/v3/api-docs")
+                || uri.contains("/actuator")
+                || uri.contains("/webjars")
+                || uri.endsWith("/favicon.ico");
     }
 
     @Override
@@ -74,17 +73,20 @@ public class JwtValidator extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
 
             filterChain.doFilter(request, response);
-        } catch (io.jsonwebtoken.JwtException e) {
+        } catch (io.jsonwebtoken.JwtException | IllegalArgumentException e) {
             SecurityContextHolder.clearContext();
-            throw new BadCredentialsException("Invalid JWT token: " + e.getMessage(), e);
-        } catch (IllegalArgumentException e) {
-            // This might happen if JWT is empty or malformed in a specific way
-            SecurityContextHolder.clearContext();
-            throw new BadCredentialsException("Malformed JWT token", e);
+            writeUnauthorized(response, "Your session is invalid or has expired. Please sign in again.");
         } catch (Exception e) {
-            // ALL other exceptions (including SerializationException from downstream)
-            // MUST be re-thrown without being wrapped in BadCredentialsException
             throw e;
         }
+    }
+
+    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        String json = "{\"timestamp\":\"" + java.time.Instant.now() + "\",\"status\":401,\"error\":\"Unauthorized\",\"message\":\""
+                + message.replace("\"", "'") + "\"}";
+        response.getWriter().write(json);
     }
 }

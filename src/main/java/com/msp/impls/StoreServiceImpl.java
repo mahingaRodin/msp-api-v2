@@ -8,6 +8,7 @@ import com.msp.models.StoreContact;
 import com.msp.models.User;
 import com.msp.payloads.dtos.StoreDto;
 import com.msp.repositories.StoreRepository;
+import com.msp.repositories.UserRepository;
 import com.msp.services.StoreService;
 import com.msp.services.UserService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 @CacheConfig(cacheNames = "stores")
 public class StoreServiceImpl implements StoreService {
         private final StoreRepository storeRepo;
+        private final UserRepository userRepo;
         private final UserService userService;
 
         @Override
@@ -43,7 +45,15 @@ public class StoreServiceImpl implements StoreService {
         })
         public StoreDto createStore(StoreDto storeDto, User user) {
                 Store store = StoreMapper.toEntity(storeDto, user);
-                return StoreMapper.toDto(storeRepo.save(store));
+                Store saved = storeRepo.save(store);
+                if (user.getStore() == null) {
+                        user.setStore(saved);
+                        if (user.getTenantId() == null && saved.getTenantId() != null) {
+                                user.setTenantId(saved.getTenantId());
+                        }
+                        userRepo.save(user);
+                }
+                return StoreMapper.toDto(saved);
         }
 
         @Override
@@ -64,7 +74,14 @@ public class StoreServiceImpl implements StoreService {
         @Override
         public Store getStoreByAdmin() {
                 User admin = userService.getCurrentUser();
-                return storeRepo.findByStoreAdminId(admin.getId());
+                Store store = storeRepo.findByStoreAdminId(admin.getId());
+                if (store == null) {
+                        store = admin.getStore();
+                }
+                if (store == null) {
+                        throw new UserException("No store is linked to your account yet. Create a store first.");
+                }
+                return store;
         }
 
         @Override

@@ -65,6 +65,10 @@ public class BusinessPortalServiceImpl implements BusinessPortalService {
                 request.getContactEmail(), request.getContactAddress());
 
         Store saved = storeRepo.save(store);
+        if (owner.getStore() == null) {
+            owner.setStore(saved);
+            userRepo.save(owner);
+        }
         log.info("Store created: id={}, brand={}, tenantId={}", saved.getId(), saved.getBrand(), tenantId);
         return StoreMapper.toDto(saved);
     }

@@ -34,6 +34,7 @@ public class BranchMapper {
                 .openTime(branchDto.getOpenTime())
                 .closeTime(branchDto.getCloseTime())
                 .workingDays(branchDto.getWorkingDays())
+                .tenantId(store != null ? store.getTenantId() : null)
                 .createdAt(branchDto.getCreatedAt())
                 .updatedAt(branchDto.getUpdatedAt())
                 .build();

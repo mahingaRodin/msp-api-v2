@@ -31,6 +31,7 @@ public class UserDto {
 
     private UUID branchId;
     private UUID storeId;
+    private UUID tenantId;
     private Boolean emailVerified;
     private String profilePicture;
 
