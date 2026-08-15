@@ -4,6 +4,7 @@ import com.msp.enums.EAuditAction;
 import com.msp.enums.ERegistrationStatus;
 import com.msp.exceptions.BusinessRegistrationException;
 import com.msp.mappers.TenantRegistrationMapper;
+import com.msp.mail.EmailLayout;
 import com.msp.models.TenantRegistration;
 import com.msp.models.User;
 import com.msp.payloads.dtos.TenantRegistrationDto;
@@ -142,31 +143,31 @@ public class BusinessRegistrationServiceImpl implements BusinessRegistrationServ
                 .createdAt(LocalDateTime.now())
                 .build());
 
-        String details = """
-                <div style="font-family:sans-serif;max-width:640px">
-                  <h2>New POSify business application</h2>
-                  <p><b>%s</b> wants to join the platform.</p>
-                  <ul>
-                    <li>Owner: %s %s</li>
-                    <li>Email: %s</li>
-                    <li>Phone: %s</li>
-                    <li>Legal name: %s</li>
-                    <li>Reg no: %s</li>
-                    <li>Country: %s</li>
-                    <li>Industry: %s</li>
-                  </ul>
-                  <p>%s</p>
-                </div>
+        String details = EmailLayout.wrap(
+                "New POSify business application",
+                """
+                <p><b>%s</b> wants to join the platform.</p>
+                <ul>
+                  <li>Owner: %s %s</li>
+                  <li>Email: %s</li>
+                  <li>Phone: %s</li>
+                  <li>Legal name: %s</li>
+                  <li>Reg no: <span style="font-family:'JetBrains Mono','Courier New',monospace">%s</span></li>
+                  <li>Country: %s</li>
+                  <li>Industry: %s</li>
+                </ul>
+                <p>%s</p>
                 """.formatted(
-                reg.getBusinessName(),
-                reg.getOwnerFirstName(), reg.getOwnerLastName(),
-                reg.getOwnerEmail(),
-                nvl(reg.getOwnerPhone()),
-                nvl(reg.getLegalName()),
-                nvl(reg.getRegistrationNumber()),
-                nvl(reg.getCountry()),
-                nvl(reg.getIndustry()),
-                nvl(reg.getBusinessDescription())
+                        reg.getBusinessName(),
+                        reg.getOwnerFirstName(), reg.getOwnerLastName(),
+                        reg.getOwnerEmail(),
+                        nvl(reg.getOwnerPhone()),
+                        nvl(reg.getLegalName()),
+                        nvl(reg.getRegistrationNumber()),
+                        nvl(reg.getCountry()),
+                        nvl(reg.getIndustry()),
+                        nvl(reg.getBusinessDescription())
+                )
         );
         try {
             mailService.send(adminEmail, "New business application: " + reg.getBusinessName(), details);
@@ -175,13 +176,11 @@ public class BusinessRegistrationServiceImpl implements BusinessRegistrationServ
         }
         try {
             mailService.send(reg.getOwnerEmail(), "We received your POSify application",
-                    """
-                    <div style="font-family:sans-serif;max-width:560px">
-                      <h2>Application received</h2>
-                      <p>Hi %s, your details for <b>%s</b> were sent to POSify admin and are under review.</p>
-                      <p>You will get another email when the application is approved, rejected, or if we need more information.</p>
-                    </div>
-                    """.formatted(reg.getOwnerFirstName(), reg.getBusinessName()));
+                    EmailLayout.wrap(
+                            "Application received",
+                            "<p>Hi %s, your details for <b>%s</b> were sent to POSify admin and are under review.</p><p>You will get another email when the application is approved, rejected, or if we need more information.</p>"
+                                    .formatted(reg.getOwnerFirstName(), reg.getBusinessName())
+                    ));
         } catch (Exception e) {
             log.error("Failed to email applicant {}", reg.getOwnerEmail(), e);
         }
@@ -346,14 +345,11 @@ public class BusinessRegistrationServiceImpl implements BusinessRegistrationServ
         reg = registrationRepo.save(reg);
         try {
             mailService.send(reg.getOwnerEmail(), "POSify needs more information",
-                    """
-                    <div style="font-family:sans-serif;max-width:560px">
-                      <h2>More information needed</h2>
-                      <p>Hi %s, admin reviewed <b>%s</b> and asked:</p>
-                      <blockquote>%s</blockquote>
-                      <p>Reply by resubmitting your application with the missing details.</p>
-                    </div>
-                    """.formatted(reg.getOwnerFirstName(), reg.getBusinessName(), message == null ? "" : message));
+                    EmailLayout.wrap(
+                            "More information needed",
+                            "<p>Hi %s, admin reviewed <b>%s</b> and asked:</p><blockquote style=\"margin:16px 0;padding:12px 16px;border-left:4px solid #F59E0B;background:#F8FAFC;color:#0F172A\">%s</blockquote><p>Reply by resubmitting your application with the missing details.</p>"
+                                    .formatted(reg.getOwnerFirstName(), reg.getBusinessName(), message == null ? "" : message)
+                    ));
         } catch (Exception e) {
             log.error("Failed to send more-info email", e);
         }

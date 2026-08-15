@@ -3,6 +3,7 @@ package com.msp.impls;
 import com.msp.enums.EActivationPurpose;
 import com.msp.enums.EUserStatus;
 import com.msp.exceptions.UserException;
+import com.msp.mail.EmailLayout;
 import com.msp.models.ActivationToken;
 import com.msp.models.User;
 import com.msp.repositories.ActivationTokenRepository;
@@ -27,7 +28,7 @@ public class AccountActivationServiceImpl implements AccountActivationService {
     private final MailService mailService;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.frontend-url:http://localhost:8080}")
+    @Value("${app.frontend-url:https://multi-tenant-pos-fe-v2.vercel.app}")
     private String frontendUrl;
 
     @Override
@@ -38,7 +39,7 @@ public class AccountActivationServiceImpl implements AccountActivationService {
                 .token(token)
                 .user(user)
                 .purpose(purpose)
-                .expiresAt(LocalDateTime.now().plusDays(7))
+                .expiresAt(LocalDateTime.now().plusHours(24))
                 .createdAt(LocalDateTime.now())
                 .build();
         tokenRepo.save(row);
@@ -54,14 +55,16 @@ public class AccountActivationServiceImpl implements AccountActivationService {
         mailService.send(
                 user.getEmail(),
                 "Activate your POSify " + roleLabel + " account",
-                """
-                <div style="font-family:sans-serif;max-width:560px">
-                  <h2>Welcome to POSify</h2>
-                  <p>Hi %s, your <b>%s</b> account is ready. Set your password using this link (valid 7 days):</p>
-                  <p><a href="%s" style="background:#14B8A6;color:#0F172A;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Activate account</a></p>
-                  <p style="color:#64748b;font-size:12px">If the button does not work, copy: %s</p>
-                </div>
-                """.formatted(user.getFirstName(), roleLabel, link, link)
+                EmailLayout.wrap(
+                        "Welcome to POSify",
+                        "<p>Hi %s, your <b>%s</b> account is ready. Set your password using this link (valid 24 hours):</p>%s%s"
+                                .formatted(
+                                        user.getFirstName(),
+                                        roleLabel,
+                                        EmailLayout.button(link, "Activate account"),
+                                        EmailLayout.muted("If the button does not work, copy: " + link)
+                                )
+                )
         );
     }
 

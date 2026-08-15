@@ -143,11 +143,16 @@ public class DemoDataSeeder implements CommandLineRunner {
         Category household = categoryRepository.save(Category.builder()
                 .name("Household").store(store).tenantId(tenantId).build());
 
-        seedProduct(store, tenantId, groceries, "Inyange Milk 1L", "MILK-1L", 1200, 80, branch);
-        seedProduct(store, tenantId, groceries, "Akabanga 125ml", "AKABANGA-125", 1500, 40, branch);
-        seedProduct(store, tenantId, beverages, "Coca-Cola 500ml", "COKE-500", 800, 120, branch);
-        seedProduct(store, tenantId, beverages, "Rwanda Mountain Tea", "TEA-500", 2500, 35, branch);
-        seedProduct(store, tenantId, household, "Savon de Marseille", "SOAP-MAR", 1800, 50, branch);
+        seedProduct(store, tenantId, groceries, "Inyange Milk 1L", "MILK-1L", 1200, 80, branch,
+                "https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=800&q=80");
+        seedProduct(store, tenantId, groceries, "Akabanga 125ml", "AKABANGA-125", 1500, 40, branch,
+                "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80");
+        seedProduct(store, tenantId, beverages, "Coca-Cola 500ml", "COKE-500", 800, 120, branch,
+                "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&w=800&q=80");
+        seedProduct(store, tenantId, beverages, "Rwanda Mountain Tea", "TEA-500", 2500, 35, branch,
+                "https://images.unsplash.com/photo-1564890369478-c89ca6d59b2f?auto=format&fit=crop&w=800&q=80");
+        seedProduct(store, tenantId, household, "Savon de Marseille", "SOAP-MAR", 1800, 50, branch,
+                "https://images.unsplash.com/photo-1584305574647-0cc949ae2d0e?auto=format&fit=crop&w=800&q=80");
 
         log.info("=== Demo seed complete. Logins use password Demo!123 (super admin is admin!123) ===");
     }
@@ -172,14 +177,15 @@ public class DemoDataSeeder implements CommandLineRunner {
     }
 
     private void seedProduct(Store store, UUID tenantId, Category category, String name, String sku,
-                             double price, int qty, Branch branch) {
+                             double price, int qty, Branch branch, String image) {
         Product product = productRepository.save(Product.builder()
                 .name(name)
                 .sku(sku)
-                .description("Demo product")
+                .description(name)
                 .mrp(price)
                 .sellingPrice(price)
-                .brand("POSify Demo")
+                .brand("POSify")
+                .image(image)
                 .category(category)
                 .store(store)
                 .tenantId(tenantId)
