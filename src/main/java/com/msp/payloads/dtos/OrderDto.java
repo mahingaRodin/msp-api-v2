@@ -24,6 +24,11 @@ public class OrderDto {
         private UUID customerId;
         private UUID cashierId;
 
+        /** Display helpers for admin/list UIs (optional). */
+        private String branchName;
+        private String storeBrand;
+        private String customerName;
+
         private List<OrderItemDto> items;
         private EPaymentType paymentType;
         private EOrderStatus status;
