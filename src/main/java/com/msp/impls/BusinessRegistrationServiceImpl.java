@@ -191,18 +191,22 @@ public class BusinessRegistrationServiceImpl implements BusinessRegistrationServ
     // ── Read ────────────────────────────────────────────────────────────────
 
     @Override
+    @Transactional(readOnly = true)
     public TenantRegistrationDto getRegistration(UUID registrationId) {
-        TenantRegistration reg = findOrThrow(registrationId);
+        TenantRegistration reg = registrationRepo.findByIdWithReviewer(registrationId)
+                .orElseThrow(() -> new BusinessRegistrationException(
+                        "Registration not found: " + registrationId));
         return TenantRegistrationMapper.toDto(reg);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<TenantRegistrationDto> listRegistrations(ERegistrationStatus status, Pageable pageable) {
         if (status != null) {
             return registrationRepo.findByStatus(status, pageable)
                     .map(TenantRegistrationMapper::toDto);
         }
-        return registrationRepo.findAll(pageable)
+        return registrationRepo.findAllWithReviewer(pageable)
                 .map(TenantRegistrationMapper::toDto);
     }
 

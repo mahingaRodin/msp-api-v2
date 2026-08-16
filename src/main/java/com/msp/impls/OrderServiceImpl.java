@@ -25,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -211,8 +212,8 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     @Cacheable(value = "orders-all", key = "#page + '-' + #size")
     public Page<OrderDto> getAllOrders(int page, int size) throws Exception {
-        Pageable pageable = PageRequest.of(page, size);
-        return orderRepository.findAll(pageable).map(OrderMapper::toDto);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return orderRepository.findAllForAdminList(pageable).map(OrderMapper::toListDto);
     }
 
     @Override

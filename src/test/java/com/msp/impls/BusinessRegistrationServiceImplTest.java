@@ -164,7 +164,7 @@ class BusinessRegistrationServiceImplTest {
         @DisplayName("Returns DTO for existing registration")
         void get_exists_returnsDto() {
             UUID id = UUID.randomUUID();
-            when(registrationRepo.findById(id))
+            when(registrationRepo.findByIdWithReviewer(id))
                     .thenReturn(Optional.of(savedReg(id, ERegistrationStatus.PENDING)));
 
             TenantRegistrationDto result = service.getRegistration(id);
@@ -176,7 +176,7 @@ class BusinessRegistrationServiceImplTest {
         @DisplayName("Throws for non-existent registration")
         void get_notFound_throws() {
             UUID id = UUID.randomUUID();
-            when(registrationRepo.findById(id)).thenReturn(Optional.empty());
+            when(registrationRepo.findByIdWithReviewer(id)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.getRegistration(id))
                     .isInstanceOf(BusinessRegistrationException.class)
@@ -196,7 +196,7 @@ class BusinessRegistrationServiceImplTest {
             UUID id = UUID.randomUUID();
             Page<TenantRegistration> page = new PageImpl<>(
                     List.of(savedReg(id, ERegistrationStatus.PENDING)));
-            when(registrationRepo.findAll(any(PageRequest.class))).thenReturn(page);
+            when(registrationRepo.findAllWithReviewer(any(PageRequest.class))).thenReturn(page);
 
             Page<TenantRegistrationDto> result =
                     service.listRegistrations(null, PageRequest.of(0, 10));
@@ -219,7 +219,7 @@ class BusinessRegistrationServiceImplTest {
             assertThat(result.getContent().get(0).getStatus())
                     .isEqualTo(ERegistrationStatus.PENDING);
             verify(registrationRepo).findByStatus(eq(ERegistrationStatus.PENDING), any());
-            verify(registrationRepo, never()).findAll(any(PageRequest.class));
+            verify(registrationRepo, never()).findAllWithReviewer(any(PageRequest.class));
         }
     }
 

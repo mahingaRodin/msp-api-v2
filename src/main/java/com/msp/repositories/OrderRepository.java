@@ -4,6 +4,7 @@ import com.msp.models.Order;
 import com.msp.models.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +20,10 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Page<Order> findByBranchIdAndCreatedAtBetween(UUID branchId, LocalDateTime from, LocalDateTime to, Pageable pageable);
     List<Order> findByCashierAndCreatedAtBetween(User cashier, LocalDateTime from, LocalDateTime to);
     Page<Order> findTop5ByBranchIdOrderByCreatedAtDesc(UUID branchId,Pageable pageable);
+
+    @EntityGraph(attributePaths = {"branch", "branch.store", "customer"})
+    @Query(value = "select o from Order o", countQuery = "select count(o) from Order o")
+    Page<Order> findAllForAdminList(Pageable pageable);
 
     @Query("select coalesce(sum(o.totalAmount), 0) from Order o where o.status <> com.msp.enums.EOrderStatus.CANCELLED")
     Double sumPlatformRevenue();
