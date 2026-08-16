@@ -18,6 +18,7 @@ public class AnalyticsSummaryDto {
     private long storeCount;
     private long branchCount;
     private long productCount;
+    private long employeeCount;
 
     @Builder.Default
     private List<DailyMetricDto> daily = new ArrayList<>();

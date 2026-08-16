@@ -27,4 +27,6 @@ public class RefundDto {
     private UUID branchId;
     private EPaymentType paymentType;
     private LocalDateTime createdAt;
+    private String status;
+    private boolean restocked;
 }

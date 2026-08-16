@@ -24,9 +24,12 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final TenantContextFilter tenantContextFilter;
+    private final SubscriptionAccessFilter subscriptionAccessFilter;
 
-    public SecurityConfig(TenantContextFilter tenantContextFilter) {
+    public SecurityConfig(TenantContextFilter tenantContextFilter,
+                          SubscriptionAccessFilter subscriptionAccessFilter) {
         this.tenantContextFilter = tenantContextFilter;
+        this.subscriptionAccessFilter = subscriptionAccessFilter;
     }
 
     @Bean
@@ -37,6 +40,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .addFilterBefore(new JwtValidator(), BasicAuthenticationFilter.class)
                 .addFilterAfter(tenantContextFilter, JwtValidator.class)
+                .addFilterAfter(subscriptionAccessFilter, TenantContextFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
 
@@ -120,6 +124,14 @@ public class SecurityConfig {
     public FilterRegistrationBean<TenantContextFilter> tenantContextFilterRegistration(
             TenantContextFilter filter) {
         FilterRegistrationBean<TenantContextFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<SubscriptionAccessFilter> subscriptionAccessFilterRegistration(
+            SubscriptionAccessFilter filter) {
+        FilterRegistrationBean<SubscriptionAccessFilter> registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
     }

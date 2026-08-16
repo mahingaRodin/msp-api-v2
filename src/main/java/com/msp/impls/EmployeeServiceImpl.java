@@ -3,6 +3,7 @@ package com.msp.impls;
 import com.msp.enums.EActivationPurpose;
 import com.msp.enums.EUserRole;
 import com.msp.enums.EUserStatus;
+import com.msp.exceptions.UserException;
 import com.msp.mappers.UserMapper;
 import com.msp.models.Branch;
 import com.msp.models.Store;
@@ -13,6 +14,7 @@ import com.msp.repositories.StoreRepository;
 import com.msp.repositories.UserRepository;
 import com.msp.services.AccountActivationService;
 import com.msp.services.EmployeeService;
+import com.msp.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
@@ -26,7 +28,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,6 +43,43 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
     private final AccountActivationService activationService;
+    private final UserService userService;
+
+    private static final Set<EUserRole> STORE_STAFF_ROLES = EnumSet.of(
+            EUserRole.ROLE_STORE_MANAGER,
+            EUserRole.ROLE_BRANCH_MANAGER,
+            EUserRole.ROLE_BRANCH_CASHIER
+    );
+
+    private void assertCanManageStore(UUID storeId) {
+        User current = userService.getCurrentUser();
+        if (current.getRole() == EUserRole.ROLE_SUPER_ADMIN) {
+            return;
+        }
+        if (current.getStore() == null || current.getStore().getId() == null
+                || !current.getStore().getId().equals(storeId)) {
+            throw new UserException("You can only manage employees for your own store");
+        }
+    }
+
+    private void assertCanManageBranch(UUID branchId) {
+        User current = userService.getCurrentUser();
+        if (current.getRole() == EUserRole.ROLE_SUPER_ADMIN) {
+            return;
+        }
+        Branch branch = branchRepository.findById(branchId)
+                .orElseThrow(() -> new UserException("Branch Not Found!"));
+        if (current.getRole() == EUserRole.ROLE_BRANCH_MANAGER) {
+            if (current.getBranch() == null || !branchId.equals(current.getBranch().getId())) {
+                throw new UserException("You can only manage employees for your own branch");
+            }
+            return;
+        }
+        if (current.getStore() == null || branch.getStore() == null
+                || !current.getStore().getId().equals(branch.getStore().getId())) {
+            throw new UserException("You can only manage employees for your own store");
+        }
+    }
 
     @Override
     @Caching(
@@ -51,6 +92,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             }
     )
     public UserDto createStoreEmployee(UserDto employee, UUID storeId) throws Exception {
+        assertCanManageStore(storeId);
         Store store = storeRepository.findById(storeId).orElseThrow(
                 () -> new Exception("Store Not Found")
         );
@@ -96,6 +138,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             }
     )
     public UserDto createBranchEmployee(UserDto employee, UUID branchId) throws Exception {
+        assertCanManageBranch(branchId);
         Branch branch = branchRepository.findById(branchId).orElseThrow(
                 () -> new Exception("Branch Not Found!")
         );
@@ -137,15 +180,26 @@ public class EmployeeServiceImpl implements EmployeeService {
         User existingEmployee = userRepository.findById(employeeId).orElseThrow(
                 () -> new Exception("Employee with given id doesn't exist!")
         );
-        Branch branch = branchRepository.findById(employeeId).orElseThrow(
-                () -> new Exception("Branch Not Found!")
-        );
+        if (existingEmployee.getStore() != null) {
+            assertCanManageStore(existingEmployee.getStore().getId());
+        } else if (existingEmployee.getBranch() != null) {
+            assertCanManageBranch(existingEmployee.getBranch().getId());
+        }
+        if (employeeDetails.getBranchId() != null) {
+            Branch branch = branchRepository.findById(employeeDetails.getBranchId()).orElseThrow(
+                    () -> new Exception("Branch Not Found!")
+            );
+            existingEmployee.setBranch(branch);
+        }
         existingEmployee.setEmail(employeeDetails.getEmail());
         existingEmployee.setFirstName(employeeDetails.getFirstName());
         existingEmployee.setLastName(employeeDetails.getLastName());
-        existingEmployee.setPassword(employeeDetails.getPassword());
-        existingEmployee.setRole(employeeDetails.getRole());
-        existingEmployee.setBranch(branch);
+        if (employeeDetails.getPassword() != null && !employeeDetails.getPassword().isBlank()) {
+            existingEmployee.setPassword(passwordEncoder.encode(employeeDetails.getPassword()));
+        }
+        if (employeeDetails.getRole() != null) {
+            existingEmployee.setRole(employeeDetails.getRole());
+        }
         return userRepository.save(existingEmployee);
     }
 
@@ -161,37 +215,54 @@ public class EmployeeServiceImpl implements EmployeeService {
         User employee = userRepository.findById(employeeId).orElseThrow(
                 () -> new Exception("Employee Not Found!")
         );
+        if (employee.getStore() != null) {
+            assertCanManageStore(employee.getStore().getId());
+        } else if (employee.getBranch() != null) {
+            assertCanManageBranch(employee.getBranch().getId());
+        }
+        if (employee.getRole() == EUserRole.ROLE_SUPER_ADMIN
+                || employee.getRole() == EUserRole.ROLE_STORE_ADMIN) {
+            throw new UserException("Cannot remove admin accounts from the employee list");
+        }
         userRepository.delete(employee);
     }
 
     @Override
-    @Cacheable(value = "employees-store", key = "#storeId + '-' + #role + '-' + #page + '-' + #size")
     public Page<UserDto> findStoreEmployees(UUID storeId, EUserRole role, int page, int size) throws Exception {
+        assertCanManageStore(storeId);
         Store store = storeRepository.findById(storeId).orElseThrow(
                 ()-> new Exception("Store Not Found!")
         );
+        User current = userService.getCurrentUser();
         Pageable pageable = PageRequest.of(page, size);
-        Page<User> userPage = userRepository.findByStore(store, pageable);
-        List<UserDto> filtered = userPage.stream()
+        List<UserDto> all = userRepository.findByStore(store, PageRequest.of(0, 500)).stream()
+                .filter(user -> user.getRole() != EUserRole.ROLE_SUPER_ADMIN)
+                .filter(user -> user.getRole() != EUserRole.ROLE_CUSTOMER)
+                .filter(user -> current.getRole() != EUserRole.ROLE_STORE_MANAGER
+                        || STORE_STAFF_ROLES.contains(user.getRole()))
                 .filter(user -> role == null || user.getRole() == role)
                 .map(UserMapper::toDTO)
                 .toList();
-
-        return new PageImpl<>(filtered, pageable, userPage.getTotalElements());
+        int from = Math.min(page * size, all.size());
+        int to = Math.min(from + size, all.size());
+        return new PageImpl<>(all.subList(from, to), pageable, all.size());
     }
 
     @Override
-    @Cacheable(value = "employees-branch", key = "#branchId + '-' + #role + '-' + #page + '-' + #size")
     public Page<UserDto> findBranchEmployees(UUID branchId, EUserRole role, int page, int size) throws Exception {
-        Branch branch = branchRepository.findById(branchId).orElseThrow(
+        assertCanManageBranch(branchId);
+        branchRepository.findById(branchId).orElseThrow(
                 () -> new Exception("Branch Not Found!")
         );
         Pageable pageable = PageRequest.of(page, size);
-        Page<User> userPage = userRepository.findByBranchId(branchId, pageable);
-        List<UserDto> employee = userPage
-                .stream().filter(user -> role == null || user.getRole() == role)
+        List<UserDto> all = userRepository.findByBranchId(branchId, PageRequest.of(0, 500)).stream()
+                .filter(user -> user.getRole() != EUserRole.ROLE_SUPER_ADMIN)
+                .filter(user -> user.getRole() != EUserRole.ROLE_STORE_ADMIN)
+                .filter(user -> role == null || user.getRole() == role)
                 .map(UserMapper::toDTO)
                 .collect(Collectors.toList());
-        return new PageImpl<>(employee, pageable, userPage.getTotalElements());
+        int from = Math.min(page * size, all.size());
+        int to = Math.min(from + size, all.size());
+        return new PageImpl<>(all.subList(from, to), pageable, all.size());
     }
 }

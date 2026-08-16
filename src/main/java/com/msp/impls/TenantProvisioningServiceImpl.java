@@ -3,6 +3,7 @@ package com.msp.impls;
 import com.msp.enums.EAuditAction;
 import com.msp.enums.EBusinessStatus;
 import com.msp.enums.ERegistrationStatus;
+import com.msp.enums.EStoreStatus;
 import com.msp.enums.ESubscriptionTier;
 import com.msp.enums.EUserRole;
 import com.msp.enums.EUserStatus;
@@ -14,6 +15,7 @@ import com.msp.models.User;
 import com.msp.payloads.dtos.BusinessDto;
 import com.msp.payloads.response.ProvisioningResponse;
 import com.msp.repositories.BusinessRepository;
+import com.msp.repositories.StoreRepository;
 import com.msp.repositories.TenantRegistrationRepository;
 import com.msp.repositories.UserRepository;
 import com.msp.enums.EActivationPurpose;
@@ -24,6 +26,7 @@ import com.msp.mail.EmailLayout;
 import com.msp.services.TenantProvisioningService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +41,7 @@ public class TenantProvisioningServiceImpl implements TenantProvisioningService 
 
     private final TenantRegistrationRepository registrationRepo;
     private final BusinessRepository businessRepo;
+    private final StoreRepository storeRepository;
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
@@ -170,9 +174,17 @@ public class TenantProvisioningServiceImpl implements TenantProvisioningService 
         ESubscriptionTier oldTier = business.getSubscriptionTier();
         business.setSubscriptionTier(tier);
 
-        // Clear trial end date when upgrading to a paid tier
+        // Clear trial end date when upgrading to a paid tier and reactivate
         if (tier != ESubscriptionTier.FREE_TRIAL) {
             business.setTrialEndsAt(null);
+            business.setStatus(EBusinessStatus.ACTIVE);
+            storeRepository.findByTenantId(tenantId, PageRequest.of(0, 200))
+                    .forEach(store -> {
+                        if (store.getStatus() == EStoreStatus.BLOCKED) {
+                            store.setStatus(EStoreStatus.ACTIVE);
+                            storeRepository.save(store);
+                        }
+                    });
         }
 
         business = businessRepo.save(business);

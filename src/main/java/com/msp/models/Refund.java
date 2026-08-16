@@ -3,6 +3,7 @@ package com.msp.models;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.msp.enums.EPaymentType;
+import com.msp.enums.ERefundStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -47,8 +48,23 @@ public class Refund {
     @Column(name = "tenant_id")
     private UUID tenantId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 40)
+    private ERefundStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "requested_by_user_id")
+    private User requestedBy;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean restocked = false;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (status == null) {
+            status = ERefundStatus.COMPLETED;
+        }
     }
 }

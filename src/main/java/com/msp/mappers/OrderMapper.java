@@ -47,9 +47,8 @@ public class OrderMapper {
             builder.customerName(name.isEmpty() ? customer.getEmail() : name);
         }
 
-        if (includeItems) {
-            builder.items(order.getItems() == null ? java.util.List.of() :
-                    order.getItems().stream().map(OrderItemMapper::toDto).toList());
+        if (includeItems && order.getItems() != null && Hibernate.isInitialized(order.getItems())) {
+            builder.items(order.getItems().stream().map(OrderItemMapper::toDto).toList());
         } else {
             builder.items(java.util.List.of());
         }

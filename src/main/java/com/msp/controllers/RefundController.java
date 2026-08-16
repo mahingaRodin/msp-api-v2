@@ -87,6 +87,27 @@ public class RefundController {
         return ResponseEntity.ok(refund);
     }
 
+    @GetMapping("/branch/{branchId}/pending")
+    public ResponseEntity<Page<RefundDto>> pendingReturns(
+            @PathVariable UUID branchId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) throws Exception {
+        return ResponseEntity.ok(refundService.getPendingReturnsForBranch(branchId, page, size));
+    }
+
+    @PostMapping("/{id}/approve-return")
+    public ResponseEntity<RefundDto> approveReturn(@PathVariable UUID id) throws Exception {
+        return ResponseEntity.ok(refundService.approveReturnAndRefund(id));
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<RefundDto> rejectReturn(
+            @PathVariable UUID id,
+            @RequestBody(required = false) java.util.Map<String, String> body) throws Exception {
+        String reason = body != null ? body.get("reason") : null;
+        return ResponseEntity.ok(refundService.rejectRefundRequest(id, reason));
+    }
+
     @Operation(
             summary = "Get all refunds",
             description = "Retrieves a list of all refunds in the system. Requires ADMIN or MANAGER role."

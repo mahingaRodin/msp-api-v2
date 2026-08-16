@@ -12,4 +12,5 @@ public interface InventoryRepository extends JpaRepository<Inventory, UUID> {
     Inventory findByProductIdAndBranchId(UUID productId, UUID branchId);
     List<Inventory> findByProductId(UUID productId);
     Page<Inventory> findByBranchId(UUID branchId, Pageable pageable);
+    long countByBranchId(UUID branchId);
 }

@@ -4,9 +4,11 @@ import com.msp.payloads.dtos.AnalyticsSummaryDto;
 import com.msp.payloads.dtos.DailyMetricDto;
 import com.msp.payloads.dtos.NamedMetricDto;
 import com.msp.repositories.BranchRepository;
+import com.msp.repositories.InventoryRepository;
 import com.msp.repositories.OrderRepository;
 import com.msp.repositories.ProductRepository;
 import com.msp.repositories.StoreRepository;
+import com.msp.repositories.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +34,8 @@ public class AnalyticsController {
     private final StoreRepository storeRepository;
     private final BranchRepository branchRepository;
     private final ProductRepository productRepository;
+    private final InventoryRepository inventoryRepository;
+    private final UserRepository userRepository;
 
     @GetMapping("/platform")
     @PreAuthorize("hasAuthority('ROLE_SUPER_ADMIN')")
@@ -73,12 +77,15 @@ public class AnalyticsController {
     @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_STORE_ADMIN','ROLE_STORE_MANAGER','ROLE_BRANCH_MANAGER')")
     public ResponseEntity<AnalyticsSummaryDto> branch(@PathVariable UUID branchId) {
         LocalDateTime from = LocalDate.now().minusDays(13).atStartOfDay();
+        long cashiers = userRepository.countByBranchIdAndRole(branchId, com.msp.enums.EUserRole.ROLE_BRANCH_CASHIER);
+        long inventorySkus = inventoryRepository.countByBranchId(branchId);
         return ResponseEntity.ok(AnalyticsSummaryDto.builder()
                 .revenue(nz(orderRepository.sumBranchRevenue(branchId)))
                 .orderCount(orderRepository.countBranchOrders(branchId))
                 .storeCount(1)
                 .branchCount(1)
-                .productCount(0)
+                .productCount(inventorySkus)
+                .employeeCount(cashiers)
                 .daily(mapDaily(orderRepository.dailyBranch(branchId, from)))
                 .byBranch(List.of())
                 .topProducts(mapNamed(orderRepository.topProductsByBranch(branchId)).stream().limit(8).toList())

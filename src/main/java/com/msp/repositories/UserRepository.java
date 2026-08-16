@@ -34,4 +34,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Page<User> findByStore(Store store, Pageable pageable);
     Page<User> findByBranchId(UUID branchId,Pageable pageable);
     Page<User> findByUserStatus(EUserStatus status, Pageable pageable);
+
+    long countByBranchIdAndRole(UUID branchId, com.msp.enums.EUserRole role);
 }
