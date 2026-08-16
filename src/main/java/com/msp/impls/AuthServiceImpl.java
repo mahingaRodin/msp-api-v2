@@ -158,14 +158,26 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             throw new UserException("Email doesn't exist: " + email);
         }
-        if (!user.isEmailVerified() && user.getRole() == EUserRole.ROLE_CUSTOMER) {
-            throw new UserException("Verify your email first. Check your inbox for the OTP.");
-        }
-        if (user.getUserStatus() == EUserStatus.PENDING) {
-            throw new UserException("Activate your account using the link we emailed you.");
-        }
-        if (user.getUserStatus() != EUserStatus.ACTIVE) {
-            throw new UserException("Account is " + user.getUserStatus().toString().toLowerCase());
+
+        // Platform super admin never needs an activation email — heal on login if needed
+        if (user.getRole() == EUserRole.ROLE_SUPER_ADMIN) {
+            if (user.getUserStatus() != EUserStatus.ACTIVE || !user.isEmailVerified()) {
+                user.setUserStatus(EUserStatus.ACTIVE);
+                user.setEmailVerified(true);
+                user.setOtpHash(null);
+                user.setOtpExpiresAt(null);
+                user = userRepo.save(user);
+            }
+        } else {
+            if (!user.isEmailVerified() && user.getRole() == EUserRole.ROLE_CUSTOMER) {
+                throw new UserException("Verify your email first. Check your inbox for the OTP.");
+            }
+            if (user.getUserStatus() == EUserStatus.PENDING) {
+                throw new UserException("Activate your account using the link we emailed you.");
+            }
+            if (user.getUserStatus() != EUserStatus.ACTIVE) {
+                throw new UserException("Account is " + user.getUserStatus().toString().toLowerCase());
+            }
         }
 
         Authentication authentication = authenticate(email, password);

@@ -14,12 +14,22 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     List<User> findAllByEmail(String email);
 
     /**
-     * Email is not unique in the schema. Duplicate rows exist in some environments
-     * and a derived {@code findByEmail} query then crashes startup/login.
+     * Email is not unique in the schema. Prefer ACTIVE super-admin, then any ACTIVE,
+     * then the first match — so duplicate / PENDING rows do not block login.
      */
     default User findByEmail(String email) {
         List<User> matches = findAllByEmail(email);
-        return matches.isEmpty() ? null : matches.get(0);
+        if (matches.isEmpty()) {
+            return null;
+        }
+        return matches.stream()
+                .filter(u -> u.getRole() == com.msp.enums.EUserRole.ROLE_SUPER_ADMIN
+                        && u.getUserStatus() == EUserStatus.ACTIVE)
+                .findFirst()
+                .or(() -> matches.stream()
+                        .filter(u -> u.getUserStatus() == EUserStatus.ACTIVE)
+                        .findFirst())
+                .orElse(matches.get(0));
     }
     Page<User> findByStore(Store store, Pageable pageable);
     Page<User> findByBranchId(UUID branchId,Pageable pageable);
