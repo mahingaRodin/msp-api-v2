@@ -48,6 +48,7 @@ public class ShopController {
     private final BranchRepository branchRepo;
     private final CustomerRepository customerRepo;
     private final OrderService orderService;
+    private final com.msp.services.RefundService refundService;
 
     @GetMapping("/favorites")
     public ResponseEntity<Page<ProductDto>> favorites(
@@ -148,6 +149,13 @@ public class ShopController {
         if (items.isEmpty()) {
             throw new UserException("Your cart is empty");
         }
+        if (request.getPaymentType() != null
+                && request.getPaymentType().name().equals("CARD")) {
+            if (request.getCardBrand() == null || request.getCardBrand().isBlank()
+                    || request.getCardNumber() == null || request.getCardNumber().isBlank()) {
+                throw new UserException("Enter card details to pay with card (demo)");
+            }
+        }
         Customer customer = customerRepo.findByEmail(user.getEmail())
                 .orElseThrow(() -> new UserException("Customer profile missing. Contact support."));
 
@@ -166,6 +174,56 @@ public class ShopController {
         OrderDto saved = orderService.createOrder(dto);
         cartRepo.deleteByUserId(user.getId());
         return ResponseEntity.ok(saved);
+    }
+
+    @GetMapping("/favorites/ids")
+    public ResponseEntity<List<UUID>> favoriteIds() {
+        User user = userService.getCurrentUser();
+        return ResponseEntity.ok(favoriteRepo.findProductIdsByUserId(user.getId()));
+    }
+
+    @GetMapping("/orders")
+    public ResponseEntity<Page<OrderDto>> myOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String paymentType,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String direction) throws Exception {
+        User user = userService.getCurrentUser();
+        Customer customer = customerRepo.findByEmail(user.getEmail())
+                .orElseThrow(() -> new UserException("Customer profile missing"));
+        Page<OrderDto> orders = orderService.getOrderByCustomerId(customer.getId(), page, size);
+        // Light client-side style filters on the current page payload for demo speed
+        List<OrderDto> filtered = orders.getContent().stream()
+                .filter(o -> status == null || status.isBlank()
+                        || (o.getStatus() != null && o.getStatus().name().equalsIgnoreCase(status)))
+                .filter(o -> paymentType == null || paymentType.isBlank()
+                        || (o.getPaymentType() != null && o.getPaymentType().name().equalsIgnoreCase(paymentType)))
+                .toList();
+        if ("ASC".equalsIgnoreCase(direction) && "totalAmount".equalsIgnoreCase(sortBy)) {
+            filtered = filtered.stream()
+                    .sorted((a, b) -> Double.compare(
+                            a.getTotalAmount() != null ? a.getTotalAmount() : 0,
+                            b.getTotalAmount() != null ? b.getTotalAmount() : 0))
+                    .toList();
+        } else if ("DESC".equalsIgnoreCase(direction) && "totalAmount".equalsIgnoreCase(sortBy)) {
+            filtered = filtered.stream()
+                    .sorted((a, b) -> Double.compare(
+                            b.getTotalAmount() != null ? b.getTotalAmount() : 0,
+                            a.getTotalAmount() != null ? a.getTotalAmount() : 0))
+                    .toList();
+        }
+        return ResponseEntity.ok(new org.springframework.data.domain.PageImpl<>(
+                filtered, PageRequest.of(page, size), orders.getTotalElements()));
+    }
+
+    @PostMapping("/orders/{orderId}/refund-request")
+    public ResponseEntity<com.msp.payloads.dtos.RefundDto> requestRefund(
+            @PathVariable UUID orderId,
+            @RequestBody(required = false) java.util.Map<String, String> body) throws Exception {
+        String reason = body != null ? body.get("reason") : null;
+        return ResponseEntity.ok(refundService.requestCustomerRefund(orderId, reason));
     }
 
     @Data

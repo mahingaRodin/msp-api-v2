@@ -14,12 +14,25 @@ import java.util.List;
 import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
+    @EntityGraph(attributePaths = {"branch", "customer", "cashier"})
     Page<Order> findByCustomerId(UUID customerId,Pageable pageable);
+
+    @EntityGraph(attributePaths = {"branch", "customer", "cashier"})
     Page<Order> findByBranchId(UUID branchId, Pageable pageable);
+
     Page<Order> findByCashier_Id(UUID cashierId,Pageable pageable);
+
+    @EntityGraph(attributePaths = {"branch", "customer", "cashier"})
     Page<Order> findByBranchIdAndCreatedAtBetween(UUID branchId, LocalDateTime from, LocalDateTime to, Pageable pageable);
+
     List<Order> findByCashierAndCreatedAtBetween(User cashier, LocalDateTime from, LocalDateTime to);
+
+    @EntityGraph(attributePaths = {"branch", "customer"})
     Page<Order> findTop5ByBranchIdOrderByCreatedAtDesc(UUID branchId,Pageable pageable);
+
+    @EntityGraph(attributePaths = {"items", "items.product", "branch", "customer", "cashier"})
+    @Query("select o from Order o where o.id = :id")
+    java.util.Optional<Order> findByIdWithItems(@Param("id") UUID id);
 
     @EntityGraph(attributePaths = {"branch", "branch.store", "customer"})
     @Query(value = "select o from Order o", countQuery = "select count(o) from Order o")

@@ -13,24 +13,22 @@ public class RefundMapper {
                 .orderId(refund.getOrder() != null ? refund.getOrder().getId() : null)
                 .reason(refund.getReason())
                 .amount(refund.getAmount())
-                .createdAt(refund.getCreatedAt());
+                .createdAt(refund.getCreatedAt())
+                .restocked(refund.isRestocked())
+                .status(refund.getStatus() != null ? refund.getStatus().name() : null);
 
-        // cashier
         if (refund.getCashier() != null) {
             builder.cashierName(refund.getCashier().getFirstName());
         }
 
-        // branch
         if (refund.getBranch() != null) {
             builder.branchId(refund.getBranch().getId());
         }
 
-        // shiftReport
         if (refund.getShiftReport() != null) {
             builder.shiftReportId(refund.getShiftReport().getId());
         }
 
-        // paymentType
         if (refund.getPaymentType() != null) {
             builder.paymentType(refund.getPaymentType());
         }

@@ -112,6 +112,23 @@ The repository contains Helm charts or standard manifests within the `k8s/` dire
 helm upgrade --install msp-pos ./k8s/chart
 ```
 
+## Load testing
+
+k6 scripts live in the sibling `load-test/` folder (see [`../load-test/README.md`](../load-test/README.md)).
+
+**Local conclusion (17 Aug 2026):** with this API on port **5000**, PostgreSQL, and Redis, public catalog and authenticated customer/store-admin reads stayed healthy at 5–10 concurrent users. Median latency was ~15–20 ms; p95 stayed under 100 ms. That is a **local smoke/load check**, not a production capacity rating.
+
+Shop orders require a `customers` row as well as a `users` row. The demo customer seed now creates that profile. Concurrent add-to-cart on the **same** demo user showed a ~0.5% failure rate (2 requests); reads were clean.
+
+```powershell
+# API must already be running on http://localhost:5000
+.\load-test\run-all.ps1 `
+  -CustomerEmail "customer@posify.demo" `
+  -CustomerPassword "Demo!123" `
+  -AdminEmail "manager@posify.demo" `
+  -AdminPassword "Demo!123"
+```
+
 ## 🤝 Contributing
 
 1. Fork the repository

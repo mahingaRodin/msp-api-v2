@@ -39,6 +39,7 @@ class TenantProvisioningServiceImplTest {
 
     @Mock private TenantRegistrationRepository registrationRepo;
     @Mock private BusinessRepository businessRepo;
+    @Mock private com.msp.repositories.StoreRepository storeRepository;
     @Mock private UserRepository userRepo;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private AuditLogService auditLogService;

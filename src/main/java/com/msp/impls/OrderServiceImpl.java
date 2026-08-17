@@ -129,7 +129,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Cacheable(key = "#id")
     public OrderDto getOrderById(UUID id) throws Exception {
-        return orderRepository.findById(id)
+        return orderRepository.findByIdWithItems(id)
                 .map(OrderMapper::toDto)
                 .orElseThrow(() -> new Exception("Order not found: " + id));
     }
@@ -149,7 +149,7 @@ public class OrderServiceImpl implements OrderService {
                 .filter(o -> cashierId    == null || (o.getCashier()  != null && o.getCashier().getId().equals(cashierId)))
                 .filter(o -> paymentType  == null || o.getPaymentType() == paymentType)
                 .filter(o -> orderStatus  == null || o.getStatus()      == orderStatus)
-                .map(OrderMapper::toDto)
+                .map(OrderMapper::toListDto)
                 .collect(Collectors.toList());
 
         return new PageImpl<>(orders, pageable, orderPage.getTotalElements());
@@ -188,7 +188,7 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime end   = today.plusDays(1).atStartOfDay();
         Pageable pageable = PageRequest.of(page, size);
         return orderRepository.findByBranchIdAndCreatedAtBetween(branchId, start, end, pageable)
-                .map(OrderMapper::toDto);
+                .map(OrderMapper::toListDto);
     }
 
     @Override
@@ -196,7 +196,7 @@ public class OrderServiceImpl implements OrderService {
     @Cacheable(value = "orders-by-customer", key = "#customerId + '-' + #page + '-' + #size")
     public Page<OrderDto> getOrderByCustomerId(UUID customerId, int page, int size) throws Exception {
         Pageable pageable = PageRequest.of(page, size);
-        return orderRepository.findByCustomerId(customerId, pageable).map(OrderMapper::toDto);
+        return orderRepository.findByCustomerId(customerId, pageable).map(OrderMapper::toListDto);
     }
 
     @Override
@@ -205,7 +205,7 @@ public class OrderServiceImpl implements OrderService {
     public Page<OrderDto> getTop5RecentOrdersByBranchId(UUID branchId, int page, int size) throws Exception {
         Pageable pageable = PageRequest.of(page, size);
         return orderRepository.findTop5ByBranchIdOrderByCreatedAtDesc(branchId, pageable)
-                .map(OrderMapper::toDto);
+                .map(OrderMapper::toListDto);
     }
 
     @Override

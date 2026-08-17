@@ -91,7 +91,7 @@ public class Business {
             status = EBusinessStatus.ACTIVE;
         }
         if (subscriptionTier == ESubscriptionTier.FREE_TRIAL && trialEndsAt == null) {
-            trialEndsAt = createdAt.plusDays(30);
+            trialEndsAt = createdAt.plusDays(15);
         }
     }
 

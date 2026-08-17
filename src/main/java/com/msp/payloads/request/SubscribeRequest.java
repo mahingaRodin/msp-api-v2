@@ -1,18 +1,13 @@
 package com.msp.payloads.request;
 
-import com.msp.enums.EPaymentType;
+import com.msp.enums.ESubscriptionTier;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-import java.util.UUID;
-
 @Data
-public class CheckoutRequest {
+public class SubscribeRequest {
     @NotNull
-    private UUID branchId;
-    @NotNull
-    private EPaymentType paymentType;
-    /** Demo card fields — accepted but not validated against a real processor. */
+    private ESubscriptionTier tier;
     private String cardBrand;
     private String cardHolderName;
     private String cardNumber;
