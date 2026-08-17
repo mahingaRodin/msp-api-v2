@@ -1,5 +1,6 @@
-name: Build and Deploy to Azure Docker
+name: Deploy to Azure (main only)
 
+# main = deploy only. Tests + k6 load gate run on the staging branch (staging.yml).
 on:
   push:
     branches: ["main"]

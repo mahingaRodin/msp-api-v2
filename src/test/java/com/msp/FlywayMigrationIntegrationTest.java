@@ -63,7 +63,7 @@ class FlywayMigrationIntegrationTest {
             ResultSet history = statement.executeQuery(
                     "SELECT version FROM flyway_schema_history WHERE success = true ORDER BY installed_rank DESC LIMIT 1");
             history.next();
-            assertEquals("13", history.getString(1));
+            assertEquals("16", history.getString(1));
         }
     }
 
