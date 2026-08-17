@@ -2,6 +2,9 @@ import http from "k6/http";
 
 export const BASE = __ENV.BASE_URL || "http://localhost:5000";
 
+/** GitHub Actions docker-compose.ci stack (768m RAM / 0.5 CPU). */
+export const isCiStack = () => __ENV.CI_STACK === "true";
+
 export function jsonHeaders(token) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;

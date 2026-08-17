@@ -11,8 +11,28 @@ import { check, sleep } from "k6";
  */
 const BASE = __ENV.BASE_URL || "http://localhost:5000";
 const PROFILE = __ENV.PROFILE || "ramp";
+const ciStack = __ENV.CI_STACK === "true";
 
 const profiles = {
+  // CI gate on GitHub Actions (768m / 0.5 CPU) — lower VUs, relaxed latency SLOs
+  ci_ramp: {
+    scenarios: {
+      browse: {
+        executor: "ramping-vus",
+        startVUs: 0,
+        stages: [
+          { duration: "45s", target: 10 },
+          { duration: "1m", target: 20 },
+          { duration: "30s", target: 0 },
+        ],
+        gracefulRampDown: "20s",
+      },
+    },
+    thresholds: {
+      http_req_failed: ["rate<0.02"],
+      http_req_duration: ["p(95)<2500", "p(99)<4000"],
+    },
+  },
   // Quick pre-release gate (~4 min): ramp 0→50, hold, ramp down
   ramp: {
     scenarios: {
@@ -69,7 +89,10 @@ const profiles = {
   },
 };
 
-export const options = profiles[PROFILE] || profiles.ramp;
+const effectiveProfile =
+  ciStack && PROFILE === "ramp" ? "ci_ramp" : PROFILE;
+
+export const options = profiles[effectiveProfile] || profiles.ramp;
 
 export default function () {
   const stores = http.get(`${BASE}/api/catalog/stores?size=20`);

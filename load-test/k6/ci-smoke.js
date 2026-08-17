@@ -1,11 +1,32 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
-import { BASE, jsonHeaders, login } from "./helpers.js";
+import { BASE, isCiStack, jsonHeaders, login } from "./helpers.js";
 
 /**
  * Staging CI gate — smoke + moderate concurrency (production-like SLOs, shorter than prod soak).
  * Runs inside GitHub Actions against the docker-compose.ci stack.
+ *
+ * When CI_STACK=true, latency thresholds are relaxed for the constrained runner (768m / 0.5 CPU).
+ * Error-rate gates stay strict; use a real staging VM for tight latency SLOs.
  */
+const ciStack = isCiStack();
+
+const thresholds = ciStack
+  ? {
+      http_req_failed: ["rate<0.02"],
+      http_req_duration: ["p(95)<2500", "p(99)<4000"],
+      "http_req_duration{flow:catalog}": ["p(95)<1500"],
+      "http_req_duration{flow:customer}": ["p(95)<2000"],
+      "http_req_duration{flow:admin}": ["p(95)<2000"],
+    }
+  : {
+      http_req_failed: ["rate<0.02"],
+      http_req_duration: ["p(95)<800", "p(99)<2000"],
+      "http_req_duration{flow:catalog}": ["p(95)<600"],
+      "http_req_duration{flow:customer}": ["p(95)<900"],
+      "http_req_duration{flow:admin}": ["p(95)<700"],
+    };
+
 export const options = {
   scenarios: {
     catalog_ramp: {
@@ -34,13 +55,7 @@ export const options = {
       startTime: "15s",
     },
   },
-  thresholds: {
-    http_req_failed: ["rate<0.02"],
-    http_req_duration: ["p(95)<800", "p(99)<2000"],
-    "http_req_duration{flow:catalog}": ["p(95)<600"],
-    "http_req_duration{flow:customer}": ["p(95)<900"],
-    "http_req_duration{flow:admin}": ["p(95)<700"],
-  },
+  thresholds,
 };
 
 const customerEmail = __ENV.EMAIL || "customer@posify.demo";

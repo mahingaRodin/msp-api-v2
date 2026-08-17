@@ -10,7 +10,7 @@ GitHub Actions (`.github/workflows/staging.yml`) runs on every push/PR to **`sta
 |---|---|
 | Unit tests | Maven (`*Test`, excludes full `@SpringBootTest` context) |
 | Flyway | Fresh Postgres, migrations through **V16** |
-| Load gate | `docker-compose.ci.yml` (768m / 0.5 CPU) + `ci-smoke.js` + `prod-catalog.js` ramp (50 VU) |
+| Load gate | `docker-compose.ci.yml` (768m / 0.5 CPU) + `ci-smoke.js` + `prod-catalog.js` ramp (20 VU on CI; 50 VU locally) |
 
 **`main`** runs **`deploy.yml` only** (no tests). Merge `staging → main` after CI is green.
 

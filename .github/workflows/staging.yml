@@ -91,12 +91,12 @@ jobs:
       - name: Smoke + moderate concurrency (CI SLO gate)
         working-directory: load-test/k6
         run: |
-          k6 run -e BASE_URL=http://127.0.0.1:5000 ci-smoke.js
+          k6 run -e BASE_URL=http://127.0.0.1:5000 -e CI_STACK=true ci-smoke.js
 
       - name: Production-style catalog ramp (50 VU)
         working-directory: load-test/k6
         run: |
-          k6 run -e BASE_URL=http://127.0.0.1:5000 -e PROFILE=ramp prod-catalog.js
+          k6 run -e BASE_URL=http://127.0.0.1:5000 -e CI_STACK=true -e PROFILE=ramp prod-catalog.js
 
       - name: Production-style catalog soak (15m, manual)
         if: github.event_name == 'workflow_dispatch' && inputs.run_soak
