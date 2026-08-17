@@ -49,8 +49,9 @@ public class Refund {
     private UUID tenantId;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 40)
-    private ERefundStatus status;
+    @Column(length = 40, nullable = false)
+    @Builder.Default
+    private ERefundStatus status = ERefundStatus.COMPLETED;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requested_by_user_id")
