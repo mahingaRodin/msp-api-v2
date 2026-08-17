@@ -114,9 +114,11 @@ helm upgrade --install msp-pos ./k8s/chart
 
 ## Load testing
 
-k6 scripts live in the sibling `load-test/` folder (see [`../load-test/README.md`](../load-test/README.md)).
+k6 scripts and CI stack live in [`load-test/`](load-test/) (also documented in repo-root `../load-test/` for the monorepo workspace).
 
-**Local conclusion (17 Aug 2026):** with this API on port **5000**, PostgreSQL, and Redis, public catalog and authenticated customer/store-admin reads stayed healthy at 5–10 concurrent users. Median latency was ~15–20 ms; p95 stayed under 100 ms. That is a **local smoke/load check**, not a production capacity rating.
+**Branch flow:** tests + load gate run on **`staging`** ([`BRANCHING.md`](BRANCHING.md)). **`main`** deploys only.
+
+**Local conclusion (17 Aug 2026):** with this API on port **5000**, PostgreSQL, and Redis, public catalog and authenticated customer/store-admin reads stayed healthy at 5–10 concurrent users. Median latency was ~15–20 ms; p95 stayed under 100 ms. **Staging CI** extends that to **30–50 VU** on a prod-like Docker stack — see [`load-test/README.md`](load-test/README.md).
 
 Shop orders require a `customers` row as well as a `users` row. The demo customer seed now creates that profile. Concurrent add-to-cart on the **same** demo user showed a ~0.5% failure rate (2 requests); reads were clean.
 

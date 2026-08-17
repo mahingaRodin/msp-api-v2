@@ -1,0 +1,60 @@
+# CI stack for staging load tests — sized like deploy/docker/docker-compose.yml (768m / 0.5 CPU).
+# Used by .github/workflows/staging.yml (not for production deploy).
+name: msp-api-ci
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: msp_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ci
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d msp_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  api:
+    image: msp-api-ci:local
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/msp_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: ci
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_SECRET: ci-jwt-secret-key-for-github-actions-load-tests-only
+      DEMO_SEED: "true"
+      AWS_MESSAGING_ENABLED: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      APP_PUBLIC_BASE_URL: http://127.0.0.1:5000
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70.0 -XX:+UseContainerSupport"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5000/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 120s
+    mem_limit: 768m
+    cpus: "0.50"
