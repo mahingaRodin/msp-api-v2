@@ -8,6 +8,7 @@ import com.msp.enums.EUserStatus;
 import com.msp.models.Branch;
 import com.msp.models.Business;
 import com.msp.models.Category;
+import com.msp.models.Customer;
 import com.msp.models.Inventory;
 import com.msp.models.Product;
 import com.msp.models.Store;
@@ -16,6 +17,7 @@ import com.msp.models.User;
 import com.msp.repositories.BranchRepository;
 import com.msp.repositories.BusinessRepository;
 import com.msp.repositories.CategoryRepository;
+import com.msp.repositories.CustomerRepository;
 import com.msp.repositories.InventoryRepository;
 import com.msp.repositories.ProductRepository;
 import com.msp.repositories.StoreRepository;
@@ -47,6 +49,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     private static final String DEMO_PASSWORD = "Demo!123";
     private static final String MANAGER_EMAIL = "manager@posify.demo";
+    private static final String CUSTOMER_EMAIL = "customer@posify.demo";
 
     private final UserRepository userRepository;
     private final BusinessRepository businessRepository;
@@ -55,6 +58,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
+    private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -62,6 +66,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     public void run(String... args) {
         if (userRepository.findByEmail(MANAGER_EMAIL) != null) {
             log.info("Demo data already present — skipping seed");
+            ensureDemoCustomerProfile();
             return;
         }
 
@@ -131,10 +136,11 @@ public class DemoDataSeeder implements CommandLineRunner {
         cashier.setBranch(branch);
         userRepository.save(cashier);
 
-        User customer = saveUser("Eric", "Niyonzima", "customer@posify.demo", "+250780000004",
+        User customer = saveUser("Eric", "Niyonzima", CUSTOMER_EMAIL, "+250780000004",
                 EUserRole.ROLE_CUSTOMER, tenantId, encoded, now);
         customer.setStore(store);
         userRepository.save(customer);
+        saveCustomerProfile(customer);
 
         Category groceries = categoryRepository.save(Category.builder()
                 .name("Groceries").store(store).tenantId(tenantId).build());
@@ -155,6 +161,31 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "https://images.unsplash.com/photo-1584305574647-0cc949ae2d0e?auto=format&fit=crop&w=800&q=80");
 
         log.info("=== Demo seed complete. Logins use password Demo!123 (super admin is admin!123) ===");
+    }
+
+    private void ensureDemoCustomerProfile() {
+        User customerUser = userRepository.findByEmail(CUSTOMER_EMAIL);
+        if (customerUser == null) {
+            return;
+        }
+        saveCustomerProfile(customerUser);
+    }
+
+    private void saveCustomerProfile(User customerUser) {
+        if (customerRepository.findByEmail(customerUser.getEmail()).isPresent()) {
+            return;
+        }
+        customerRepository.save(Customer.builder()
+                .firstName(customerUser.getFirstName())
+                .lastName(customerUser.getLastName())
+                .email(customerUser.getEmail())
+                .phone(customerUser.getPhone())
+                .role(EUserRole.ROLE_CUSTOMER)
+                .password(customerUser.getPassword())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build());
+        log.info("Created Customer profile for {}", customerUser.getEmail());
     }
 
     private User saveUser(String first, String last, String email, String phone,
